@@ -17,3 +17,10 @@ def image_to_file(image, name):
 def get_dolores_emoji():
     r = random.randint(0, len(DOLORES_EMOJIS) - 1)
     return DOLORES_EMOJIS[r]
+
+
+def clear_text(text):
+    if text == '.':
+        text = ''
+
+    return text

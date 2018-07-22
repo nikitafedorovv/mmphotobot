@@ -12,7 +12,7 @@ from PIL import Image
 from telebot import types
 
 from botspeech import *
-from botutil import image_to_file, get_dolores_emoji
+from botutil import image_to_file, get_dolores_emoji, clear_text
 from chatdata import ChatCache
 from chatdata import ChatState
 from mmphoto import gen_image
@@ -106,7 +106,7 @@ def reply_done(chat_id):
 def set_heading(message):
     chat_id = message.chat.id
 
-    cache.set_heading(chat_id, message.text)
+    cache.set_heading(chat_id, clear_text(message.text))
     cache.set_state(chat_id, ChatState.FREE)
 
     reply_done(chat_id)
@@ -115,7 +115,7 @@ def set_heading(message):
 def set_subheading(message):
     chat_id = message.chat.id
 
-    cache.set_subheading(chat_id, message.text)
+    cache.set_subheading(chat_id, clear_text(message.text))
     cache.set_state(chat_id, ChatState.FREE)
 
     reply_done(chat_id)
