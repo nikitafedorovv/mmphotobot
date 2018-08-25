@@ -9,7 +9,6 @@ from botconfig import *
 class ChatState(Enum):
     FREE = '/cancel'
     SETTING_HEADING = "/" + SET_HEADING_COMMAND
-    SETTING_SUBHEADING = "/" + SET_SUBHEADING_COMMAND
     SETTING_BLACKOUT = "/" + SET_BLACKOUT_COMMAND
     SETTING_BLUR = "/" + SET_BLUR_COMMAND
     SPECIFYING_MAILING_LIST = "/" + SET_MAILING_LIST_COMMAND
@@ -20,7 +19,6 @@ class ChatState(Enum):
 class ChatData:
     chat_id = 0
     heading = DEFAULT_HEADING
-    subheading = DEFAULT_SUBHEADING
     blackout = DEFAULT_BLACKOUT
     blur = DEFAULT_BLUR
     cached_message = None
@@ -47,10 +45,6 @@ class ChatCache:
         self.get_chat_data_from_cache(chat_id).heading = value
         pass
 
-    def set_subheading(self, chat_id, value):
-        self.get_chat_data_from_cache(chat_id).subheading = value
-        pass
-
     def set_blackout(self, chat_id, value):
         self.get_chat_data_from_cache(chat_id).blackout = value
         pass
@@ -70,9 +64,6 @@ class ChatCache:
     def get_heading(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).heading
 
-    def get_subheading(self, chat_id):
-        return self.get_chat_data_from_cache(chat_id).subheading
-
     def get_blackout(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).blackout
 
@@ -85,6 +76,6 @@ class ChatCache:
     def get_state(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).state
 
-    def headings_set(self, chat_id):
+    def heading_set(self, chat_id):
         chat_data = self.get_chat_data_from_cache(chat_id)
-        return (chat_data.heading != DEFAULT_HEADING) & (chat_data.subheading != DEFAULT_SUBHEADING)
+        return chat_data.heading != DEFAULT_HEADING

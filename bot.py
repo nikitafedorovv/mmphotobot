@@ -93,7 +93,7 @@ def handle_free_text(message):
 
 
 def reply_done(chat_id):
-    if cache.headings_set(chat_id) is True:
+    if cache.heading_set(chat_id) is True:
         reply_markup = stock_images_reply_markup
     else:
         reply_markup = types.ReplyKeyboardRemove()
@@ -107,15 +107,6 @@ def set_heading(message):
     chat_id = message.chat.id
 
     cache.set_heading(chat_id, clear_text(message.text))
-    cache.set_state(chat_id, ChatState.FREE)
-
-    reply_done(chat_id)
-
-
-def set_subheading(message):
-    chat_id = message.chat.id
-
-    cache.set_subheading(chat_id, clear_text(message.text))
     cache.set_state(chat_id, ChatState.FREE)
 
     reply_done(chat_id)
@@ -235,11 +226,10 @@ def get_image_from_message(message):
 
 def build_image(chat_id, background_image):
     heading = cache.get_heading(chat_id)
-    subheading = cache.get_subheading(chat_id)
     blackout = cache.get_blackout(chat_id)
     blur = cache.get_blur(chat_id)
 
-    return gen_image(heading, subheading, background_image, blackout, blur)
+    return gen_image(heading, background_image, blackout, blur)
 
 
 def send_photo_debug_info(chat, photo, date):
@@ -292,8 +282,6 @@ def handle_cancel(message):
 def clarification_text(command):
     if command == SET_HEADING_COMMAND:
         return HEADING_CLARIFICATION_TEXT
-    elif command == SET_SUBHEADING_COMMAND:
-        return SUBHEADING_CLARIFICATION_TEXT
     elif command == SET_BLACKOUT_COMMAND:
         return BLACKOUT_CLARIFICATION_TEXT
     elif command == SET_BLUR_COMMAND:
@@ -331,8 +319,6 @@ def handle_text(message):
         handle_free_text(message)
     elif state == ChatState.SETTING_HEADING:
         set_heading(message)
-    elif state == ChatState.SETTING_SUBHEADING:
-        set_subheading(message)
     elif state == ChatState.SETTING_BLACKOUT:
         set_blackout(message)
     elif state == ChatState.SETTING_BLUR:
@@ -393,5 +379,6 @@ while True:
     except Exception as e:
         handle_exception(e)
     else:
+
         send_message_to_admins(SHUTDOWN_MESSAGE_TEXT)
         break

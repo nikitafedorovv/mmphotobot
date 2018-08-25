@@ -15,7 +15,6 @@ START_MESSAGE_ADMIN_TEXT = "Set mailing list (admin option): /" + SET_MAILING_LI
                            + "\nSend a newsletter (admin option): /" + SEND_NEWSLETTER_COMMAND
 SEND_ME_PHOTO_PARAMETER_TEXT = 'Ok. Send it to me, please'
 HEADING_CLARIFICATION_TEXT = ''
-SUBHEADING_CLARIFICATION_TEXT = ''
 BLACKOUT_CLARIFICATION_TEXT = ". Remember, this parameter represents a background darkening intensity, " \
                               "it should be a float from 0 to 1 ☝️, " \
                               "where 0 means \"no darkening\", 1 — \"absolute darkness\". " \
