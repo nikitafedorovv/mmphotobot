@@ -255,7 +255,7 @@ def build_and_send_image(message, background_image):
     bot.send_document(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME))
     bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME))
     bot.delete_message(chat_id, wait_for_an_image_message.message_id)
-    bot.send_message(chat_id, get_dolores_emoji())
+    bot.send_message(chat_id, get_dolores_emoji(), reply_markup=stock_images_reply_markup)
 
     send_photo_debug_info(message.chat, built_image, message.date)
 
