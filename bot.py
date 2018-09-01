@@ -183,14 +183,23 @@ def confirm_and_make_newsletter(message):
     if message.text == str(datetime.now().day):
         if len(mailing_list) > 0:
             for chat_id_from_list in mailing_list:
-                message_to_delete = bot.send_message(chat_id, "SENDING TO " + chat_id_from_list + "...")
+                try:
+                    message_to_delete = bot.send_message(chat_id, "SENDING TO " + chat_id_from_list + "...")
 
-                sent_message = bot.send_message(chat_id_from_list, message_to_send, parse_mode="markdown",
-                                                disable_web_page_preview=True)
+                    sent_message = bot.send_message(chat_id_from_list, message_to_send, parse_mode="markdown",
+                                                    disable_web_page_preview=True)
 
-                bot.delete_message(chat_id, message_to_delete.message_id)
-                bot.send_message(chat_id,
-                                 "SENT TO " + str(chat_id_from_list) + ". MESSAGE ID: " + str(sent_message.message_id))
+                    bot.delete_message(chat_id, message_to_delete.message_id)
+                    bot.send_message(chat_id,
+                                     "SENT TO " + str(chat_id_from_list) + ". MESSAGE ID: " + str(
+                                         sent_message.message_id))
+                except telebot.apihelper.ApiException as e:
+                    time.sleep(1)
+                    chat = bot.get_chat(chat_id_from_list)
+                    bot.send_message(chat_id,
+                                     'EXCEPTION THROWN WHILE SENDING TO '
+                                     + chat.username + ' ' + chat.first_name + ' ' + chat.last_name)
+                    handle_exception(e)
             bot.send_message(chat_id, 'ALL SENT')
             cache.set_state(chat_id, ChatState.FREE)
         else:
