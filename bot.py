@@ -198,7 +198,7 @@ def confirm_and_make_newsletter(message):
                     chat = bot.get_chat(chat_id_from_list)
                     bot.send_message(chat_id,
                                      'EXCEPTION THROWN WHILE SENDING TO '
-                                     + chat.username + ' ' + chat.first_name + ' ' + chat.last_name)
+                                     + '@' + chat.username + ' ' + chat.first_name + ' ' + chat.last_name)
                     handle_exception(e)
             bot.send_message(chat_id, 'ALL SENT')
             cache.set_state(chat_id, ChatState.FREE)
