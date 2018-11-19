@@ -8,7 +8,6 @@ from io import BytesIO
 
 import cherrypy
 import telebot
-from PIL import Image
 from telebot import types
 
 from botspeech import *
@@ -16,6 +15,7 @@ from botutil import image_to_file, get_dolores_emoji, clear_text
 from chatdata import ChatCache
 from chatdata import ChatState
 from mmphoto import gen_image
+from botconfig import *
 
 telebot.logger.setLevel(logging.INFO)
 
@@ -61,7 +61,6 @@ class WebhookServer(object):
 
 # Read stock images names, make a keyboard.
 stock_images_reply_markup = types.ReplyKeyboardMarkup()
-stock_images_reply_markup.add(SEND_OWN_IMAGE_BUTTON_TEXT)
 stock_photo_names = []
 for d, dirs, files in os.walk(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY):
     for f in files:
@@ -82,68 +81,30 @@ def debug_message_processing(message):
 
 
 def handle_free_text(message):
-    if message.text in stock_photo_names:
-        build_and_send_image(message, Image.open(
-            PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + message.text).convert('RGB'))
-    elif message.text == SEND_OWN_IMAGE_BUTTON_TEXT:
-        bot.send_message(message.chat.id, OK_SEND_ME_THE_PICTURE_TEXT)
-    else:
-        bot.send_message(message.chat.id, get_dolores_emoji())
-        debug_message_processing(message)
-
-
-def reply_done(chat_id):
-    if cache.heading_set(chat_id) is True:
-        reply_markup = stock_images_reply_markup
-    else:
-        reply_markup = types.ReplyKeyboardRemove()
-
-    bot.send_message(chat_id,
-                     DONE_MESSAGE_TEXT + "\n" + PHOTO_PARAMETERS_COMMANDS_AS_STRING +
-                     "\n\n" + CHOOSE_BACKGROUND_IMAGE_TEXT, reply_markup=reply_markup)
-
-
-def set_heading(message):
+    text = message.text
     chat_id = message.chat.id
 
-    cache.set_heading(chat_id, clear_text(message.text))
-    cache.set_state(chat_id, ChatState.FREE)
-
-    reply_done(chat_id)
+    if text in stock_photo_names:
+        cache.set_image(chat_id,
+                        Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + message.text).convert('RGB'))
+        build_and_send_image(message)
+    elif validate_blackout(text) or text == '1.0':
+        cache.set_blackout(chat_id, float(text))
+        build_and_send_image(message)
+    elif validate_blur(text) or text == '1':
+        cache.set_blur(chat_id, int(text))
+        build_and_send_image(message)
+    else:
+        cache.set_heading(chat_id, clear_text(message.text))
+        build_and_send_image(message)
 
 
 def validate_blackout(blackout):
-    return re.match("^[-+]?[0-9]*\.?[0-9]+$", blackout) is not None and 0 <= float(blackout) <= 1
-
-
-def set_blackout(message):
-    chat_id = message.chat.id
-    blackout = message.text
-
-    if validate_blackout(blackout):
-        cache.set_blackout(chat_id, float(blackout))
-        cache.set_state(chat_id, ChatState.FREE)
-
-        reply_done(message.chat.id)
-    else:
-        bot.send_message(chat_id, BLACKOUT_VALIDATION_FAIL_MESSAGE_TEXT)
+    return re.match("^[-+]?[0-9]*\.?[0-9]+$", blackout) is not None and 0 <= float(blackout) < 1
 
 
 def validate_blur(blur):
-    return blur.isdigit() and int(blur) >= 0
-
-
-def set_blur(message):
-    chat_id = message.chat.id
-    blur = message.text
-
-    if validate_blur(blur):
-        cache.set_blur(chat_id, int(blur))
-        cache.set_state(chat_id, ChatState.FREE)
-
-        reply_done(message.chat.id)
-    else:
-        bot.send_message(chat_id, BLUR_VALIDATION_FAIL_MESSAGE_TEXT)
+    return blur.isdigit() and int(blur) > 1
 
 
 def validate_chat_id(chat_id):
@@ -254,8 +215,9 @@ def send_photo_debug_info(chat, photo, date):
             bot.send_photo(admin, image_to_file(photo, SENT_IMAGE_FILE_NAME), caption=caption)
 
 
-def build_and_send_image(message, background_image):
+def build_and_send_image(message):
     chat_id = message.chat.id
+    background_image = cache.get_image(chat_id)
 
     wait_for_an_image_message = bot.send_message(chat_id, WAIT_FOR_AN_IMAGE_MESSAGE_TEXT)
 
@@ -274,36 +236,10 @@ def handle_start_help(message):
     chat_id = message.chat.id
 
     cache.set_state(chat_id, ChatState.FREE)
-    bot.send_message(chat_id, START_MESSAGE_TEXT + "\n" + PHOTO_PARAMETERS_COMMANDS_AS_STRING)
+    bot.send_message(chat_id, START_MESSAGE_TEXT)
 
     if is_admin(chat_id):
         bot.send_message(chat_id, START_MESSAGE_ADMIN_TEXT)
-
-
-@bot.message_handler(commands=['cancel'])
-def handle_cancel(message):
-    chat_id = message.chat.id
-
-    cache.set_state(chat_id, ChatState.FREE)
-    bot.send_message(chat_id, CANCEL_MESSAGE_TEXT, reply_markup=stock_images_reply_markup)
-
-
-def clarification_text(command):
-    if command == SET_HEADING_COMMAND:
-        return HEADING_CLARIFICATION_TEXT
-    elif command == SET_BLACKOUT_COMMAND:
-        return BLACKOUT_CLARIFICATION_TEXT
-    elif command == SET_BLUR_COMMAND:
-        return BLUR_CLARIFICATION_TEXT
-
-
-@bot.message_handler(commands=PHOTO_PARAMETERS_COMMANDS)
-def handle_setter(message):
-    chat_id = message.chat.id
-
-    cache.set_state(chat_id, ChatState(message.text))
-    answer = SEND_ME_PHOTO_PARAMETER_TEXT + clarification_text(message.text[1:])
-    bot.send_message(chat_id, answer, reply_markup=types.ReplyKeyboardRemove())
 
 
 @bot.message_handler(commands=[SET_MAILING_LIST_COMMAND])
@@ -326,12 +262,6 @@ def handle_text(message):
 
     if state == ChatState.FREE:
         handle_free_text(message)
-    elif state == ChatState.SETTING_HEADING:
-        set_heading(message)
-    elif state == ChatState.SETTING_BLACKOUT:
-        set_blackout(message)
-    elif state == ChatState.SETTING_BLUR:
-        set_blur(message)
     elif state == ChatState.SPECIFYING_MAILING_LIST:
         set_mailing_list(message)
     elif state == ChatState.ENTERING_NEWSLETTER_MESSAGE:
@@ -343,7 +273,8 @@ def handle_text(message):
 @bot.message_handler(content_types=["photo"])
 def handle_photo(message):
     received_image = get_image_from_message(message)
-    build_and_send_image(message, received_image)
+    cache.set_image(message.chat.id, received_image)
+    build_and_send_image(message)
 
 
 @bot.message_handler(content_types=ALL_CONTENT_TYPES)
@@ -388,6 +319,5 @@ while True:
     except Exception as e:
         handle_exception(e)
     else:
-
         send_message_to_admins(SHUTDOWN_MESSAGE_TEXT)
         break

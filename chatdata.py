@@ -8,9 +8,6 @@ from botconfig import *
 
 class ChatState(Enum):
     FREE = '/cancel'
-    SETTING_HEADING = "/" + SET_HEADING_COMMAND
-    SETTING_BLACKOUT = "/" + SET_BLACKOUT_COMMAND
-    SETTING_BLUR = "/" + SET_BLUR_COMMAND
     SPECIFYING_MAILING_LIST = "/" + SET_MAILING_LIST_COMMAND
     ENTERING_NEWSLETTER_MESSAGE = "/" + SEND_NEWSLETTER_COMMAND
     CONFIRMING_NEWSLETTER = 'confirming_newsletter'
@@ -23,6 +20,7 @@ class ChatData:
     blur = DEFAULT_BLUR
     cached_message = None
     state = ChatState.FREE
+    image = DEFAULT_IMAGE
 
     def __init__(self, chat_id):
         self.chat_id = chat_id
@@ -61,6 +59,10 @@ class ChatCache:
         self.get_chat_data_from_cache(chat_id).state = value
         pass
 
+    def set_image(self, chat_id, value):
+        self.get_chat_data_from_cache(chat_id).image = value
+        pass
+
     def get_heading(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).heading
 
@@ -75,6 +77,9 @@ class ChatCache:
 
     def get_state(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).state
+
+    def get_image(self, chat_id):
+        return self.get_chat_data_from_cache(chat_id).image
 
     def heading_set(self, chat_id):
         chat_data = self.get_chat_data_from_cache(chat_id)
