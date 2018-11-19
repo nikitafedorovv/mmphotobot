@@ -50,7 +50,7 @@ class WebhookServer(object):
             update = telebot.types.Update.de_json(json_string)
 
             try:
-                bot.process_new_messages([update.message])
+                bot.process_new_updates([update])
             except Exception as exception:
                 handle_exception(exception)
 
