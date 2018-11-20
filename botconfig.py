@@ -57,3 +57,5 @@ DEFAULT_BLUR = 5
 DEFAULT_IMAGE = Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + 'mathmech.png').convert('RGB')
 
 SEND_OWN_IMAGE_BUTTON_TEXT = 'Use a custom image from device'
+
+TIMEZONE = 'Europe/Moscow'

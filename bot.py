@@ -3,7 +3,6 @@
 import logging
 import re
 import time
-from datetime import datetime
 from io import BytesIO
 
 import cherrypy
@@ -11,7 +10,7 @@ import telebot
 from telebot import types
 
 from botspeech import *
-from botutil import image_to_file, get_dolores_emoji, clear_text, safe_cast
+from botutil import image_to_file, get_dolores_emoji, clear_text, safe_cast, current_time, timezoned_date
 from chatdata import ChatCache
 from chatdata import ChatState
 from mmphoto import gen_image
@@ -142,7 +141,7 @@ def confirm_and_make_newsletter(message):
     chat_id = message.chat.id
     message_to_send = cache.get_cached_message(chat_id).text
 
-    if message.text == str(datetime.now().day):
+    if message.text == str(current_time().day):
         if len(mailing_list) > 0:
             for chat_id_from_list in mailing_list:
                 try:
@@ -205,7 +204,7 @@ def build_image(chat_id, background_image):
     return gen_image(heading, background_image, blackout, blur)
 
 
-def send_photo_debug_info(chat, photo, date):
+def send_photo_debug_info(chat, photo, timestamp):
     chat_id = chat.id
 
     if not is_admin(chat_id):
@@ -216,7 +215,7 @@ def send_photo_debug_info(chat, photo, date):
                   + " " + safe_cast(last_name, str, '/empty_last_name/') \
                   + " @" + safe_cast(username, str, '/empty_username/') \
                   + " " + str(chat_id) \
-                  + ", " + str(datetime.fromtimestamp(int(date)).strftime('%Y-%m-%d %H:%M:%S'))
+                  + ", " + str(timezoned_date(timestamp))
         for admin in ADMINS:
             bot.send_photo(admin, image_to_file(photo, SENT_IMAGE_FILE_NAME), caption=caption)
 

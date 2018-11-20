@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import random
+from datetime import datetime
+import pytz
 from io import BytesIO
+from botconfig import TIMEZONE
 
 from botspeech import DOLORES_EMOJIS
 
@@ -31,3 +34,11 @@ def safe_cast(val, to_type, default=None):
         return to_type(val)
     except (ValueError, TypeError):
         return default
+
+
+def current_time():
+    return datetime.now(tz=pytz.timezone(TIMEZONE))
+
+
+def timezoned_date(timestamp):
+    return datetime.fromtimestamp(timestamp).astimezone(pytz.timezone(TIMEZONE))
