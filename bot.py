@@ -153,7 +153,7 @@ def confirm_and_make_newsletter(message):
                     bot.delete_message(chat_id, message_to_delete.message_id)
                     bot.send_message(chat_id,
                                      "SENT TO " + str(chat_id_from_list) + ". MESSAGE ID: " + str(
-                                         sent_message.message_id))
+                                         sent_message.message_id), reply_markup=stock_images_reply_markup)
                 except telebot.apihelper.ApiException as e:
                     time.sleep(1)
                     chat = bot.get_chat(chat_id_from_list)
@@ -241,10 +241,10 @@ def handle_start_help(message):
     chat_id = message.chat.id
 
     cache.set_state(chat_id, ChatState.FREE)
-    bot.send_message(chat_id, START_MESSAGE_TEXT)
+    bot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=stock_images_reply_markup)
 
     if is_admin(chat_id):
-        bot.send_message(chat_id, START_MESSAGE_ADMIN_TEXT)
+        bot.send_message(chat_id, START_MESSAGE_ADMIN_TEXT, reply_markup=stock_images_reply_markup)
 
 
 @bot.message_handler(commands=[SET_MAILING_LIST_COMMAND])
