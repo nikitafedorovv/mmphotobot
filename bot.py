@@ -11,7 +11,7 @@ import telebot
 from telebot import types
 
 from botspeech import *
-from botutil import image_to_file, get_dolores_emoji, clear_text
+from botutil import image_to_file, get_dolores_emoji, clear_text, safe_cast
 from chatdata import ChatCache
 from chatdata import ChatState
 from mmphoto import gen_image
@@ -76,8 +76,9 @@ def debug_message_processing(message):
     chat_id = message.chat.id
 
     if not is_admin(chat_id):
-        send_message_to_admins("MESSAGE FROM " + str(message.chat.first_name) + " @" + str(
-            message.chat.username) + " " + str(chat_id) + "\n\n" + str(message.text))
+        send_message_to_admins("MESSAGE FROM " + safe_cast(message.chat.first_name, str, '/empty_first_name/')
+                               + " @" + safe_cast(message.chat.username, str, '/empty_username/')
+                               + " " + str(chat_id) + "\n\n" + safe_cast(message.text, str, '/empty_message_text/'))
 
 
 def handle_free_text(message):
@@ -159,7 +160,9 @@ def confirm_and_make_newsletter(message):
                     chat = bot.get_chat(chat_id_from_list)
                     bot.send_message(chat_id,
                                      'EXCEPTION THROWN WHILE SENDING TO '
-                                     + '@' + chat.username + ' ' + chat.first_name + ' ' + chat.last_name)
+                                     + '@' + safe_cast(chat.username, str, '/empty_username/')
+                                     + ' ' + safe_cast(chat.first_name, str, '/empty_first_name/')
+                                     + ' ' + safe_cast(chat.last_name, str, '/empty_last_name/'))
                     handle_exception(e)
             bot.send_message(chat_id, 'ALL SENT')
             cache.set_state(chat_id, ChatState.FREE)
@@ -209,7 +212,10 @@ def send_photo_debug_info(chat, photo, date):
         first_name = chat.first_name
         last_name = chat.last_name
         username = chat.username
-        caption = "PHOTO BY " + str(first_name) + " " + str(last_name) + " @" + str(username) + " " + str(chat_id) \
+        caption = "PHOTO BY " + safe_cast(first_name, str, '/empty_first_name/') \
+                  + " " + safe_cast(last_name, str, '/empty_last_name/') \
+                  + " @" + safe_cast(username, str, '/empty_username/') \
+                  + " " + str(chat_id) \
                   + ", " + str(datetime.fromtimestamp(int(date)).strftime('%Y-%m-%d %H:%M:%S'))
         for admin in ADMINS:
             bot.send_photo(admin, image_to_file(photo, SENT_IMAGE_FILE_NAME), caption=caption)
