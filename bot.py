@@ -10,7 +10,7 @@ import telebot
 from telebot import types
 
 from botspeech import *
-from botutil import image_to_file, get_dolores_emoji, clear_text, safe_cast, current_time, timezoned_date
+from botutil import image_to_file, get_dolores_emoji, clear_text, safe_cast, current_time, timezoned_time
 from chatdata import ChatCache
 from chatdata import ChatState
 from mmphoto import gen_image
@@ -215,7 +215,7 @@ def send_photo_debug_info(chat, photo, timestamp):
                   + " " + safe_cast(last_name, str, '/empty_last_name/') \
                   + " @" + safe_cast(username, str, '/empty_username/') \
                   + " " + str(chat_id) \
-                  + ", " + str(timezoned_date(timestamp))
+                  + ", " + str(timezoned_time(timestamp))
         for admin in ADMINS:
             bot.send_photo(admin, image_to_file(photo, SENT_IMAGE_FILE_NAME), caption=caption)
 

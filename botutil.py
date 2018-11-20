@@ -40,5 +40,5 @@ def current_time():
     return datetime.now(tz=pytz.timezone(TIMEZONE))
 
 
-def timezoned_date(timestamp):
-    return datetime.fromtimestamp(timestamp).astimezone(pytz.timezone(TIMEZONE))
+def timezoned_time(timestamp):
+    return datetime.fromtimestamp(timestamp, tz=pytz.timezone(TIMEZONE))
