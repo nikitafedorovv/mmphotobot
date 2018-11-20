@@ -52,7 +52,7 @@ ALL_CONTENT_TYPES = ["text",
                      "pinned_message"]
 
 DEFAULT_HEADING = 'Specify the heading,\nplease'
-DEFAULT_BLACKOUT = 0.7
+DEFAULT_BLACKOUT = 0.6
 DEFAULT_BLUR = 5
 DEFAULT_IMAGE = Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + 'mathmech.png').convert('RGB')
 
