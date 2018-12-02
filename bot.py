@@ -30,7 +30,7 @@ bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
 def send_message_to_admins(message):
     for admin in ADMINS:
-        bot.send_message(admin, message)
+        bot.send_message(admin, message, reply_markup=stock_images_reply_markup)
 
 
 def handle_exception(exception):
@@ -174,7 +174,7 @@ def confirm_and_make_newsletter(message):
 
 def handle_preliminary_admin_command(chat_id, text_to_send, state_to_set):
     cache.set_state(chat_id, state_to_set)
-    bot.send_message(chat_id, text_to_send, reply_markup=types.ReplyKeyboardRemove())
+    bot.send_message(chat_id, text_to_send, reply_markup=stock_images_reply_markup)
 
 
 def handle_preliminary_command(message, text_to_send, state_to_set):
