@@ -261,9 +261,9 @@ def build_and_send_image(message):
     built_image = build_image(heading, blackout, blur, background_image)
 
     bot.send_document(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME))
-    bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME))
+    bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME), reply_markup=go_to_library_reply_markup)
     bot.delete_message(chat_id, wait_for_an_image_message.message_id)
-    bot.send_message(chat_id, get_dolores_emoji(), reply_markup=go_to_library_reply_markup)
+    # bot.send_message(chat_id, get_dolores_emoji(), reply_markup=go_to_library_reply_markup)
 
     send_photo_debug_info(message.chat, built_image, message.date)
 
