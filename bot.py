@@ -24,6 +24,8 @@ cache = ChatCache()
 # A list of chats special messages will be sent to.
 mailing_list = []
 
+last_newsletter_messages = []
+
 # Start the bot.
 bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
@@ -160,16 +162,16 @@ def enter_newsletter_message(message):
 
 
 def confirm_and_make_newsletter(message):
+    global last_newsletter_messages
     chat_id = message.chat.id
     message_to_send = cache.get_cached_message(chat_id).text
 
     if message.text == str(current_time().day):
+        last_newsletter_messages = []
         if len(mailing_list) > 0:
             for chat_id_from_list in mailing_list:
                 try:
                     message_to_delete = bot.send_message(chat_id, "SENDING TO " + chat_id_from_list + "...")
-
-
 
                     sent_message = bot.send_message(chat_id_from_list, message_to_send,
                                                     parse_mode="markdown",
@@ -177,6 +179,10 @@ def confirm_and_make_newsletter(message):
                                                     reply_markup=go_to_library_reply_markup)
 
                     bot.delete_message(chat_id, message_to_delete.message_id)
+
+                    last_newsletter_messages.append(
+                        {'chat_id': chat_id_from_list, 'message_id': sent_message.message_id})
+
                     bot.send_message(chat_id, "SENT TO " + str(chat_id_from_list) + ". MESSAGE ID: " + str(
                         sent_message.message_id))
                 except telebot.apihelper.ApiException as e:
@@ -289,8 +295,25 @@ def handle_make_newsletter(message):
 
 @bot.message_handler(commands=[UPDATE_INLINE_STOCKS_COMMAND])
 def handle_update_stocks(message):
-    update_stock_images_file()
-    bot.send_message(message.chat.id, "Done.")
+    if not is_admin(message.chat.id):
+        handle_free_text(message)
+    else:
+        update_stock_images_file()
+        bot.send_message(message.chat.id, "DONE")
+
+
+@bot.message_handler(commands=[RECALL_NEWSLETTER_COMMAND])
+def recall_newsletter(message):
+    if not is_admin(message.chat.id):
+        handle_free_text(message)
+    else:
+        global last_newsletter_messages
+        for message_info in last_newsletter_messages:
+            bot.delete_message(message_info['chat_id'], message_info['message_id'])
+            bot.send_message(message.chat.id,
+                             'MESSAGE %s DELETED FROM CHAT %s' % (message_info['message_id'], message_info['chat_id']))
+
+        bot.send_message(message.chat.id, "RECALL OPERATION COMPLETED SUCCESSFULLY")
 
 
 @bot.message_handler(content_types=['text'])
@@ -344,7 +367,8 @@ def update_inline_query_results():
 update_inline_query_results()
 
 
-@bot.inline_handler(lambda query: query.query.startswith(GALLERY_TAG) or query.query + '\n' == GALLERY_TAG)  # lambda query: query.query == 'text'
+@bot.inline_handler(lambda query: query.query.startswith(
+    GALLERY_TAG) or query.query + '\n' == GALLERY_TAG)  # lambda query: query.query == 'text'
 def query_text(inline_query):
     global inline_query_results
     try:
