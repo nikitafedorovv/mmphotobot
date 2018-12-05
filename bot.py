@@ -27,10 +27,14 @@ mailing_list = []
 # Start the bot.
 bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
+go_to_library_reply_markup = types.InlineKeyboardMarkup()
+library_button = types.InlineKeyboardButton(text=GO_TO_INLINE_BUTTON, switch_inline_query_current_chat=GALLERY_TAG)
+go_to_library_reply_markup.add(library_button)
+
 
 def send_message_to_admins(message):
     for admin in ADMINS:
-        bot.send_message(admin, message, reply_markup=stock_images_reply_markup)
+        bot.send_message(admin, message, reply_markup=go_to_library_reply_markup)
 
 
 def handle_exception(exception):
@@ -58,13 +62,36 @@ class WebhookServer(object):
             raise cherrypy.HTTPError(403)
 
 
-# Read stock images names, make a keyboard.
-stock_images_reply_markup = types.ReplyKeyboardMarkup()
-stock_photo_names = []
-for d, dirs, files in os.walk(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY):
-    for f in files:
-        stock_photo_names.append(f)
-        stock_images_reply_markup.add(f)
+stock_photo_ids = []
+
+
+def load_stock_images_file_ids():
+    stock_images_file = open(PROJECT_DIRECTORY + '/' + IMAGES_DIRECTORY + STOCK_IMAGES_FILEIDS_FILE_NAME, 'r')
+    global stock_photo_ids
+    for photo_id_with_line in stock_images_file.readlines():
+        stock_photo_ids.append(photo_id_with_line[:-1])
+    stock_images_file.close()
+
+
+load_stock_images_file_ids()
+
+
+def update_stock_images_file():
+    stock_images_file = open(PROJECT_DIRECTORY + '/' + IMAGES_DIRECTORY + STOCK_IMAGES_FILEIDS_FILE_NAME, 'w')
+
+    for d, dirs, files in os.walk(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY):
+        for f in files:
+            image = Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + f).convert('RGB')
+            message_with_image = bot.send_photo(ADMINS[0], image_to_file(image, SENT_IMAGE_FILE_NAME))
+            file_id = message_with_image.photo[-1].file_id
+            stock_images_file.write('%s%s' % (file_id, '\n'))
+            bot.delete_message(ADMINS[0], message_with_image.message_id)
+
+    stock_images_file.close()
+    load_stock_images_file_ids()
+
+
+# update_stock_images_file()
 
 
 def is_admin(user):
@@ -84,11 +111,7 @@ def handle_free_text(message):
     text = message.text
     chat_id = message.chat.id
 
-    if text in stock_photo_names:
-        cache.set_image(chat_id,
-                        Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + message.text).convert('RGB'))
-        build_and_send_image(message)
-    elif validate_blackout(text) or text == '1.0':
+    if validate_blackout(text) or text == '1.0':
         cache.set_blackout(chat_id, float(text))
         build_and_send_image(message)
     elif validate_blur(text) or text == '1':
@@ -120,9 +143,8 @@ def set_mailing_list(message):
         if validate_chat_id(chat_id_for_list):
             mailing_list.append(chat_id_for_list)
 
-    bot.send_message(chat_id, "MAILING LIST:\n\n" + str(mailing_list)
-                     + "\n\nTO SEND A NEWSLETTER TYPE /" + SEND_NEWSLETTER_COMMAND)
-    cache.set_state(chat_id, ChatState.FREE)
+    handle_preliminary_admin_command(chat_id, "MAILING LIST:\n\n" + str(mailing_list)
+                                     + "\n\nTO SEND A NEWSLETTER TYPE /" + SEND_NEWSLETTER_COMMAND, ChatState.FREE)
 
 
 def enter_newsletter_message(message):
@@ -147,13 +169,16 @@ def confirm_and_make_newsletter(message):
                 try:
                     message_to_delete = bot.send_message(chat_id, "SENDING TO " + chat_id_from_list + "...")
 
-                    sent_message = bot.send_message(chat_id_from_list, message_to_send, parse_mode="markdown",
-                                                    disable_web_page_preview=True)
+
+
+                    sent_message = bot.send_message(chat_id_from_list, message_to_send,
+                                                    parse_mode="markdown",
+                                                    disable_web_page_preview=True,
+                                                    reply_markup=go_to_library_reply_markup)
 
                     bot.delete_message(chat_id, message_to_delete.message_id)
-                    bot.send_message(chat_id,
-                                     "SENT TO " + str(chat_id_from_list) + ". MESSAGE ID: " + str(
-                                         sent_message.message_id), reply_markup=stock_images_reply_markup)
+                    bot.send_message(chat_id, "SENT TO " + str(chat_id_from_list) + ". MESSAGE ID: " + str(
+                        sent_message.message_id))
                 except telebot.apihelper.ApiException as e:
                     time.sleep(1)
                     chat = bot.get_chat(chat_id_from_list)
@@ -174,7 +199,7 @@ def confirm_and_make_newsletter(message):
 
 def handle_preliminary_admin_command(chat_id, text_to_send, state_to_set):
     cache.set_state(chat_id, state_to_set)
-    bot.send_message(chat_id, text_to_send, reply_markup=stock_images_reply_markup)
+    bot.send_message(chat_id, text_to_send)
 
 
 def handle_preliminary_command(message, text_to_send, state_to_set):
@@ -196,11 +221,7 @@ def get_image_from_message(message):
     return image
 
 
-def build_image(chat_id, background_image):
-    heading = cache.get_heading(chat_id)
-    blackout = cache.get_blackout(chat_id)
-    blur = cache.get_blur(chat_id)
-
+def build_image(heading, blackout, blur, background_image):
     return gen_image(heading, background_image, blackout, blur)
 
 
@@ -222,16 +243,21 @@ def send_photo_debug_info(chat, photo, timestamp):
 
 def build_and_send_image(message):
     chat_id = message.chat.id
+
+    heading = cache.get_heading(chat_id)
+    blackout = cache.get_blackout(chat_id)
+    blur = cache.get_blur(chat_id)
     background_image = cache.get_image(chat_id)
 
-    wait_for_an_image_message = bot.send_message(chat_id, WAIT_FOR_AN_IMAGE_MESSAGE_TEXT)
+    wait_for_an_image_message = bot.send_message(chat_id, WAIT_FOR_AN_IMAGE_MESSAGE_TEXT,
+                                                 reply_markup=types.ReplyKeyboardRemove())
 
-    built_image = build_image(chat_id, background_image)
+    built_image = build_image(heading, blackout, blur, background_image)
 
     bot.send_document(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME))
     bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME))
     bot.delete_message(chat_id, wait_for_an_image_message.message_id)
-    bot.send_message(chat_id, get_dolores_emoji(), reply_markup=stock_images_reply_markup)
+    bot.send_message(chat_id, get_dolores_emoji(), reply_markup=go_to_library_reply_markup)
 
     send_photo_debug_info(message.chat, built_image, message.date)
 
@@ -241,10 +267,10 @@ def handle_start_help(message):
     chat_id = message.chat.id
 
     cache.set_state(chat_id, ChatState.FREE)
-    bot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=stock_images_reply_markup)
+    bot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=go_to_library_reply_markup)
 
     if is_admin(chat_id):
-        bot.send_message(chat_id, START_MESSAGE_ADMIN_TEXT, reply_markup=stock_images_reply_markup)
+        bot.send_message(chat_id, START_MESSAGE_ADMIN_TEXT)
 
 
 @bot.message_handler(commands=[SET_MAILING_LIST_COMMAND])
@@ -259,6 +285,12 @@ def handle_make_newsletter(message):
     handle_preliminary_command(message,
                                "ENTER NEWSLETTER MESSAGE",
                                ChatState.ENTERING_NEWSLETTER_MESSAGE)
+
+
+@bot.message_handler(commands=[UPDATE_INLINE_STOCKS_COMMAND])
+def handle_update_stocks(message):
+    update_stock_images_file()
+    bot.send_message(message.chat.id, "Done.")
 
 
 @bot.message_handler(content_types=['text'])
@@ -293,7 +325,35 @@ def handle_any_other_message(message):
         for admin in ADMINS:
             bot.forward_message(admin, chat_id, message_id)
 
-        bot.send_message(chat_id, get_dolores_emoji())
+        bot.send_message(chat_id, get_dolores_emoji(), reply_markup=go_to_library_reply_markup)
+
+
+inline_query_results = []
+
+
+def update_inline_query_results():
+    global inline_query_results
+    id = 1
+    for file_id in stock_photo_ids:
+        inline_query_results.append(types.InlineQueryResultCachedPhoto(str(id), file_id, parse_mode='Markdown'))
+        # url = 'https://www.iea.org/media/news/2017/171113WEO2017MainImage.jpg'
+        # inline_query_results.append(types.InlineQueryResultPhoto(str(id), url, url))
+        id += 1
+
+
+update_inline_query_results()
+
+
+@bot.inline_handler(lambda query: query.query.startswith(GALLERY_TAG) or query.query + '\n' == GALLERY_TAG)  # lambda query: query.query == 'text'
+def query_text(inline_query):
+    global inline_query_results
+    try:
+        if len(inline_query.query) > len(GALLERY_TAG):
+            text = inline_query.query[len(GALLERY_TAG):]
+            cache.set_heading(inline_query.from_user.id, clear_text(text))
+        bot.answer_inline_query(inline_query.id, inline_query_results)
+    except Exception as e:
+        print(e)
 
 
 while True:

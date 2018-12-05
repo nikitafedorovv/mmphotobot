@@ -3,7 +3,6 @@
 import os
 from PIL import Image
 
-
 PROJECT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 API_TOKEN = os.environ.get('PHOTOBOT_TOKEN')
@@ -27,6 +26,8 @@ WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
 WEBHOOK_URL_PATH = "/tgmmphotobot/"
 
 STOCK_IMAGES_DIRECTORY = 'images/stock/'
+IMAGES_DIRECTORY = 'images/'
+STOCK_IMAGES_FILEIDS_FILE_NAME = 'stock_photo_ids'
 SENT_IMAGE_FILE_NAME = 'image.jpg'
 
 ALL_CONTENT_TYPES = ["text",
@@ -52,8 +53,8 @@ ALL_CONTENT_TYPES = ["text",
                      "pinned_message"]
 
 DEFAULT_HEADING = 'Specify the heading,\nplease'
-DEFAULT_BLACKOUT = 0.6
-DEFAULT_BLUR = 5
+DEFAULT_BLACKOUT = 0.60
+DEFAULT_BLUR = 1
 DEFAULT_IMAGE = Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + 'mathmech.png').convert('RGB')
 
 SEND_OWN_IMAGE_BUTTON_TEXT = 'Use a custom image from device'
