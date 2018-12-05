@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import io
 import logging
 import re
 import time
-from io import BytesIO
 
 import cherrypy
+import requests
 import telebot
 from telebot import types
 
-from botspeech import *
-from botutil import image_to_file, get_dolores_emoji, clear_text, safe_cast, current_time, timezoned_time
-from chatdata import ChatCache
-from chatdata import ChatState
-from mmphoto import gen_image
 from botconfig import *
+from botspeech import *
+from botutil import *
+from chatdata import ChatCache, ChatState
+from mmphoto import gen_image
 
 telebot.logger.setLevel(logging.INFO)
 
@@ -29,8 +29,9 @@ last_newsletter_messages = []
 # Start the bot.
 bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
-go_to_library_reply_markup = types.InlineKeyboardMarkup()
 library_button = types.InlineKeyboardButton(text=GO_TO_INLINE_BUTTON, switch_inline_query_current_chat=GALLERY_TAG)
+
+go_to_library_reply_markup = types.InlineKeyboardMarkup()
 go_to_library_reply_markup.add(library_button)
 
 
@@ -260,8 +261,12 @@ def build_and_send_image(message):
 
     built_image = build_image(heading, blackout, blur, background_image)
 
-    bot.send_document(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME))
-    bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME), reply_markup=go_to_library_reply_markup)
+    get_as_file_button = types.InlineKeyboardButton(text=GET_AS_FILE_BUTTON, callback_data=GET_AS_FILE_CALLBACK_DATA)
+    get_as_doc_reply_markup = types.InlineKeyboardMarkup()
+    get_as_doc_reply_markup.add(get_as_file_button)
+    get_as_doc_reply_markup.add(library_button)
+
+    bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME), reply_markup=get_as_doc_reply_markup)
     bot.delete_message(chat_id, wait_for_an_image_message.message_id)
     # bot.send_message(chat_id, get_dolores_emoji(), reply_markup=go_to_library_reply_markup)
 
@@ -378,6 +383,59 @@ def query_text(inline_query):
         bot.answer_inline_query(inline_query.id, inline_query_results)
     except Exception as e:
         print(e)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(GET_AS_FILE_CALLBACK_DATA))
+def get_as_file_callback(call):
+    message = call.message
+    chat_id = message.chat.id
+    if len(call.data) == len(GET_AS_FILE_CALLBACK_DATA):
+        file_id = message.photo[-1].file_id
+    else:
+        file_id = call.data[len(GET_AS_FILE_CALLBACK_DATA):]
+
+    url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
+    r = requests.get(url)
+    with io.BytesIO(r.content) as f:
+        f.name = 'image.jpg'
+
+        get_as_photo_button = types.InlineKeyboardButton(text=GET_AS_PHOTO_BUTTON,
+                                                         callback_data='%s%s' % (GET_AS_PHOTO_CALLBACK_DATA, file_id))
+        get_as_photo_reply_markup = types.InlineKeyboardMarkup()
+        get_as_photo_reply_markup.add(get_as_photo_button)
+        get_as_photo_reply_markup.add(library_button)
+
+        try:
+            bot.delete_message(chat_id, message.message_id)
+            bot.send_document(chat_id, f, reply_markup=get_as_photo_reply_markup)
+        except Exception as e:
+            True  # Do nothing
+
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(GET_AS_PHOTO_CALLBACK_DATA))
+def get_as_photo_callback(call):
+    message = call.message
+    chat_id = message.chat.id
+    file_id = call.data[len(GET_AS_PHOTO_CALLBACK_DATA):]
+
+    url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
+    r = requests.get(url)
+    with io.BytesIO(r.content) as f:
+        get_as_photo_button = types.InlineKeyboardButton(text=GET_AS_FILE_BUTTON,
+                                                         callback_data='%s%s' % (GET_AS_FILE_CALLBACK_DATA, file_id))
+        get_as_file_reply_markup = types.InlineKeyboardMarkup()
+        get_as_file_reply_markup.add(get_as_photo_button)
+        get_as_file_reply_markup.add(library_button)
+
+        try:
+            bot.delete_message(chat_id, message.message_id)
+            bot.send_photo(chat_id, f, reply_markup=get_as_file_reply_markup)
+        except Exception as e:
+            True  # Do nothing
+
+        bot.answer_callback_query(call.id)
 
 
 while True:

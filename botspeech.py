@@ -17,5 +17,9 @@ START_MESSAGE_ADMIN_TEXT = "Set mailing list (admin option): /" + SET_MAILING_LI
                            + "\nRecall newsletter (admin option, type it by yourself): / " + RECALL_NEWSLETTER_COMMAND \
                            + "\n\nUpdate inline stocks (admin option): /" + UPDATE_INLINE_STOCKS_COMMAND
 GO_TO_INLINE_BUTTON = "🌄🌌 Gallery 🌃🎇"
+GET_AS_FILE_BUTTON = "View as file"
+GET_AS_PHOTO_BUTTON = "View as photo"
+GET_AS_FILE_CALLBACK_DATA = "F"
+GET_AS_PHOTO_CALLBACK_DATA = "P"
 GALLERY_TAG = "heading:\n"
 WAIT_FOR_AN_IMAGE_MESSAGE_TEXT = "One moment... ⏳"
