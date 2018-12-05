@@ -14,7 +14,7 @@ EXCEPTION_MESSAGE_TEXT = '‼️ Exception has been thrown'
 SHUTDOWN_MESSAGE_TEXT = 'See ya 👋'
 START_MESSAGE_ADMIN_TEXT = "Set mailing list (admin option): /" + SET_MAILING_LIST_COMMAND \
                            + "\nSend a newsletter (admin option): /" + SEND_NEWSLETTER_COMMAND \
-                           + "\nRecall newsletter (admin option): /" + RECALL_NEWSLETTER_COMMAND \
+                           + "\nRecall newsletter (admin option, type it by yourself): / " + RECALL_NEWSLETTER_COMMAND \
                            + "\n\nUpdate inline stocks (admin option): /" + UPDATE_INLINE_STOCKS_COMMAND
 GO_TO_INLINE_BUTTON = "🌄🌌 Gallery 🌃🎇"
 GALLERY_TAG = "heading:\n"
