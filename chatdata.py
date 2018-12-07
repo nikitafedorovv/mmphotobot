@@ -2,15 +2,27 @@
 
 from enum import Enum
 
-from botcommands import *
 from botconfig import *
+
+default_image = None
+
+
+def load_stock_images_file_ids():
+    stock_images_file = open(PROJECT_DIRECTORY + '/' + IMAGES_DIRECTORY + STOCK_IMAGES_FILEIDS_FILE_NAME, 'r')
+    global default_image
+    default_image = stock_images_file.readline()[:-1]
+    stock_images_file.close()
+
+
+load_stock_images_file_ids()
 
 
 class ChatState(Enum):
     FREE = '/cancel'
-    SPECIFYING_MAILING_LIST = "/" + SET_MAILING_LIST_COMMAND
-    ENTERING_NEWSLETTER_MESSAGE = "/" + SEND_NEWSLETTER_COMMAND
+    SPECIFYING_MAILING_LIST = "setting_mailing_list"
+    ENTERING_NEWSLETTER_MESSAGE = "entering_newsletter_message"
     CONFIRMING_NEWSLETTER = 'confirming_newsletter'
+    REPLYING_TO_MESSAGE = 'replying_to_message'
 
 
 class ChatData:
@@ -20,7 +32,8 @@ class ChatData:
     blur = DEFAULT_BLUR
     cached_message = None
     state = ChatState.FREE
-    image = DEFAULT_IMAGE
+    image = default_image
+    replying_to = {}
 
     def __init__(self, chat_id):
         self.chat_id = chat_id
@@ -63,6 +76,9 @@ class ChatCache:
         self.get_chat_data_from_cache(chat_id).image = value
         pass
 
+    def set_replying_to(self, chat_id, value):
+        self.get_chat_data_from_cache(chat_id).replying_to = value
+
     def get_heading(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).heading
 
@@ -80,6 +96,9 @@ class ChatCache:
 
     def get_image(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).image
+
+    def get_replying_to(self, chat_id):
+        return self.get_chat_data_from_cache(chat_id).replying_to
 
     def heading_set(self, chat_id):
         chat_data = self.get_chat_data_from_cache(chat_id)

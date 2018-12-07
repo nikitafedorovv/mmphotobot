@@ -15,6 +15,7 @@ from botspeech import *
 from botutil import *
 from chatdata import ChatCache, ChatState
 from mmphoto import gen_image
+from bot_elements_config import *
 
 telebot.logger.setLevel(logging.INFO)
 
@@ -22,17 +23,17 @@ telebot.logger.setLevel(logging.INFO)
 cache = ChatCache()
 
 # A list of chats special messages will be sent to.
-mailing_list = []
+mailing_list = set()
 
 last_newsletter_messages = []
 
 # Start the bot.
 bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
-library_button = types.InlineKeyboardButton(text=GO_TO_INLINE_BUTTON, switch_inline_query_current_chat=GALLERY_TAG)
+gallery_button = types.InlineKeyboardButton(text=GO_TO_INLINE_BUTTON, switch_inline_query_current_chat=GALLERY_TAG)
 
 go_to_library_reply_markup = types.InlineKeyboardMarkup()
-go_to_library_reply_markup.add(library_button)
+go_to_library_reply_markup.add(gallery_button)
 
 
 def send_message_to_admins(message):
@@ -41,7 +42,7 @@ def send_message_to_admins(message):
 
 
 def handle_exception(exception):
-    send_message_to_admins("%s\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
+    send_message_to_admins("<pre>%s</pre>\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
 
 
 # WebhookServer, process webhook calls.
@@ -101,7 +102,7 @@ def is_admin(user):
     return str(user) in ADMINS
 
 
-def html_inline_link_to_user(chat):
+def how_to_call_this_user(chat):
     username = chat.username
     firstname = chat.first_name
     lastname = chat.last_name
@@ -117,7 +118,12 @@ def html_inline_link_to_user(chat):
         text = '@%s' % username
     else:
         text = '/emptyuser/'
-    return '<a href="tg://user?id=%s">%s %s</a>' % (user_id, text, user_id)
+
+    return '%s %s' % (text, user_id)
+
+
+def html_inline_link_to_user(chat):
+    return '<a href="tg://user?id=%s">%s</a>' % (chat.id, how_to_call_this_user(chat))
 
 
 def debug_message_processing(message):
@@ -129,10 +135,32 @@ def debug_message_processing(message):
                                                                                '`/empty_message_text/`')))
 
 
+def show_debug_menu(chat, silently=False):
+    newsletter_button = types.InlineKeyboardButton(text=NEWSLETTER_BUTTON, callback_data=NEWSLETTER_CALLBACK_DATA)
+    update_inline_stocks_button = types.InlineKeyboardButton(text=UPDATE_INLINE_STOCKS_BUTTON,
+                                                             callback_data=UPDATE_INLINE_STOCKS_CALLBACK_DATA)
+    hide_menu_button = types.InlineKeyboardButton(text=HIDE_MENU_BUTTON, callback_data=HIDE_MENU_CALLBACK_DATA)
+
+    debug_reply_markup = types.InlineKeyboardMarkup()
+    debug_reply_markup.add(newsletter_button)
+    debug_reply_markup.add(update_inline_stocks_button)
+    debug_reply_markup.add(hide_menu_button)
+    debug_reply_markup.add(gallery_button)
+
+    bot.send_message(chat.id, '<pre>GREETINGS, %s</pre>' % how_to_call_this_user(chat).upper(),
+                     parse_mode='html', reply_markup=debug_reply_markup, disable_notification=silently)
+
+    return
+
+
 def handle_free_text(message):
     text = message.text
     chat_id = message.chat.id
 
+    if is_admin(message.chat.id):
+        if text == '/':
+            show_debug_menu(message.chat)
+            return
     if validate_blackout(text) or text == '1.0':
         cache.set_blackout(chat_id, float(text))
         build_and_send_image(message)
@@ -156,18 +184,37 @@ def validate_chat_id(chat_id):
     return chat_id.isdigit()
 
 
-def set_mailing_list(message):
-    chat_id = message.chat.id
+def add_recipients_to_list(set_of_chat_ids):
+    global mailing_list
+    mailing_list |= set(set_of_chat_ids)
 
+
+def set_mailing_list(message):
     mailing_list.clear()
 
     for chat_id_for_list in message.text.split('\n'):
         if validate_chat_id(chat_id_for_list):
-            mailing_list.append(chat_id_for_list)
+            add_recipients_to_list({chat_id_for_list})
 
-    handle_preliminary_admin_command(chat_id,
-                                     "<pre>MAILING LIST:\n\n%s\n\nTO SEND A NEWSLETTER TYPE </pre>/%s"
-                                     % (str(mailing_list), SEND_NEWSLETTER_COMMAND), ChatState.FREE)
+    make_newsletter_button = types.InlineKeyboardButton(text=MAKE_NEWSLETTER_BUTTON,
+                                                        callback_data=MAKE_NEWSLETTER_CALLBACK_DATA)
+    add_recipients_button = types.InlineKeyboardButton(text=ADD_RECIPIENTS_BUTTON,
+                                                       callback_data=ADD_RECIPIENTS_CALLBACK_DATA)
+    false_alarm_button = types.InlineKeyboardButton(text=FALSE_ALARM_BUTTON,
+                                                    callback_data=FALSE_ALARM_CALLBACK_DATA)
+    recepients_added_reply_markup = types.InlineKeyboardMarkup()
+    recepients_added_reply_markup.add(make_newsletter_button)
+    recepients_added_reply_markup.add(add_recipients_button)
+    recepients_added_reply_markup.add(false_alarm_button)
+
+    handle_preliminary_command(message, "<pre>MAILING LIST:\n\n%s</pre>" % (str(mailing_list)), ChatState.FREE,
+                               reply_markup=recepients_added_reply_markup)
+
+
+false_alarm_button = types.InlineKeyboardButton(text=FALSE_ALARM_BUTTON,
+                                                callback_data=FALSE_ALARM_CALLBACK_DATA)
+false_alarm_reply_markup = types.InlineKeyboardMarkup()
+false_alarm_reply_markup.add(false_alarm_button)
 
 
 def enter_newsletter_message(message):
@@ -178,7 +225,8 @@ def enter_newsletter_message(message):
 
     bot.send_message(chat_id, "<pre>YOUR MESSAGE:</pre>", parse_mode='html')
     bot.send_message(chat_id, message.text, parse_mode="markdown", disable_web_page_preview=True)
-    bot.send_message(chat_id, "<pre>ENTER CURRENT DAY OF MONTH TO CONFIRM</pre>", parse_mode='html')
+    bot.send_message(chat_id, "<pre>ENTER CURRENT DAY OF MONTH TO CONFIRM</pre>", parse_mode='html',
+                     reply_markup=false_alarm_reply_markup)
     cache.set_state(chat_id, ChatState.CONFIRMING_NEWSLETTER)
 
 
@@ -219,29 +267,22 @@ def confirm_and_make_newsletter(message):
                                   message_id=log_message.message_id, chat_id=chat_id, parse_mode='html')
             cache.set_state(chat_id, ChatState.FREE)
         else:
-            bot.send_message(chat_id, 'MAILING LIST IS EMPTY')
+            bot.send_message(chat_id, '<pre>MAILING LIST IS EMPTY</pre>', parse_mode='html')
             cache.set_state(chat_id, ChatState.FREE)
     else:
-        bot.send_message(chat_id, 'WRONG. TRY AGAIN')
+        bot.send_message(chat_id, '<pre>WRONG. TRY AGAIN</pre>', parse_mode='html')
 
 
-def handle_preliminary_admin_command(chat_id, text_to_send, state_to_set):
-    cache.set_state(chat_id, state_to_set)
-    bot.send_message(chat_id, text_to_send, parse_mode='html')
-
-
-def handle_preliminary_command(message, text_to_send, state_to_set):
+def handle_preliminary_command(message, text_to_send, state_to_set, reply_markup=None):
     chat_id = message.chat.id
-
     if not is_admin(chat_id):
-        handle_free_text(message)
+        handle_free_text(message.text)
     else:
-        handle_preliminary_admin_command(chat_id, text_to_send, state_to_set)
+        cache.set_state(chat_id, state_to_set)
+        bot.send_message(chat_id, text_to_send, parse_mode='html', reply_markup=reply_markup, disable_notification=True)
 
 
-def get_image_from_message(message):
-    received_photo = message.photo
-    file_id = received_photo[-1].file_id
+def get_image_from_file_id(file_id):
     file_info = bot.get_file(file_id)
     downloaded_file = bot.download_file(file_info.file_path)
     image = Image.open(BytesIO(downloaded_file))
@@ -253,15 +294,27 @@ def build_image(heading, blackout, blur, background_image):
     return gen_image(heading, background_image, blackout, blur)
 
 
-def send_photo_debug_info(chat, photo, timestamp):
+def send_photo_debug_info(chat, built_image, timestamp, message_id=None,
+                          file_id=None):  # TODO: Proper reply etc
     chat_id = chat.id
 
     if not is_admin(chat_id):
+
+        reply_button = types.InlineKeyboardButton(text=REPLY_BUTTON,
+                                                  callback_data='%s %s %s' % (REPLY_CALLBACK_DATA, chat_id, message_id))
+        background_photo_button = types.InlineKeyboardButton(text=BACKGROUND_PHOTO_BUTTON,
+                                                             callback_data='%s%s' % (
+                                                                 BACKGROUND_PHOTO_CALLBACK_DATA, file_id))
+        reply_or_save_reply_markup = types.InlineKeyboardMarkup()
+        reply_or_save_reply_markup.add(reply_button)
+        reply_or_save_reply_markup.add(background_photo_button)
+
         caption = "<pre>PHOTO BY </pre>%s<pre>\n%s</pre>" % (
             html_inline_link_to_user(chat),
             str(timezoned_time(timestamp)))
         for admin in ADMINS:
-            bot.send_photo(admin, image_to_file(photo, SENT_IMAGE_FILE_NAME), caption=caption, parse_mode='html')
+            bot.send_photo(admin, image_to_file(built_image, SENT_IMAGE_FILE_NAME), caption=caption, parse_mode='html',
+                           reply_markup=reply_or_save_reply_markup)
 
 
 def build_and_send_image(message):
@@ -270,7 +323,9 @@ def build_and_send_image(message):
     heading = cache.get_heading(chat_id)
     blackout = cache.get_blackout(chat_id)
     blur = cache.get_blur(chat_id)
-    background_image = cache.get_image(chat_id)
+
+    file_id = cache.get_image(chat_id)
+    background_image = get_image_from_file_id(file_id)
 
     wait_for_an_image_message = bot.send_message(chat_id, WAIT_FOR_AN_IMAGE_MESSAGE_TEXT,
                                                  reply_markup=types.ReplyKeyboardRemove())
@@ -280,64 +335,50 @@ def build_and_send_image(message):
     get_as_file_button = types.InlineKeyboardButton(text=GET_AS_FILE_BUTTON, callback_data=GET_AS_FILE_CALLBACK_DATA)
     get_as_doc_reply_markup = types.InlineKeyboardMarkup()
     get_as_doc_reply_markup.add(get_as_file_button)
-    get_as_doc_reply_markup.add(library_button)
+    get_as_doc_reply_markup.add(gallery_button)
 
     bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME), reply_markup=get_as_doc_reply_markup)
     bot.delete_message(chat_id, wait_for_an_image_message.message_id)
-    # bot.send_message(chat_id, get_dolores_emoji(), reply_markup=go_to_library_reply_markup)
 
-    send_photo_debug_info(message.chat, built_image, message.date)
+    send_photo_debug_info(message.chat, built_image, message.date, file_id=file_id, message_id=message.message_id)
 
 
 @bot.message_handler(commands=['start'])
-def handle_start_help(message):
+def handle_start(message):
+    handle_help(message)
+
+
+@bot.message_handler(commands=['help'])
+def handle_help(message):
     chat_id = message.chat.id
 
     cache.set_state(chat_id, ChatState.FREE)
     bot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=go_to_library_reply_markup)
 
-    if is_admin(chat_id):
-        bot.send_message(chat_id, START_MESSAGE_ADMIN_TEXT)
 
+@bot.message_handler(content_types=['text'],
+                     func=lambda message: message.reply_to_message is not None and is_admin(message.chat.id)
+                                     and cache.get_state(message.chat.id) == ChatState.REPLYING_TO_MESSAGE
+                                     and message.text is not None)  # TODO: What if cache is empty?
+def reply_to_debug_message(message):
+    cache.set_state(message.chat.id, ChatState.FREE)
+    # message_with_info = message.reply_to_message
+    reply_data = cache.get_replying_to(message.chat.id)
+    chat_id_to_reply = reply_data['chat_id']
+    # message_id_to_reply = reply_data['message_id']
 
-@bot.message_handler(commands=[SET_MAILING_LIST_COMMAND])
-def handle_mailing_list_setter(message):
-    handle_preliminary_command(message,
-                               "<pre>CURRENT MAILING LIST:\n\n%s\n\nENTER NEW MAILING LIST</pre>"
-                               % str(mailing_list),
-                               ChatState.SPECIFYING_MAILING_LIST)
+    # TODO: Reply to exact message
+    # TODO: Cancel button etc
+    # TODO: Double photos???
 
+    # hide_menu_button = types.InlineKeyboardButton(text=HIDE_MENU_BUTTON, callback_data=HIDE_MENU_CALLBACK_DATA)
+    # reply_markup = types.InlineKeyboardMarkup()
+    # reply_markup.add(hide_menu_button)
 
-@bot.message_handler(commands=[SEND_NEWSLETTER_COMMAND])
-def handle_make_newsletter(message):
-    handle_preliminary_command(message,
-                               "<pre>ENTER NEWSLETTER MESSAGE</pre>",
-                               ChatState.ENTERING_NEWSLETTER_MESSAGE)
-
-
-@bot.message_handler(commands=[UPDATE_INLINE_STOCKS_COMMAND])
-def handle_update_stocks(message):
-    if not is_admin(message.chat.id):
-        handle_free_text(message)
-    else:
-        update_stock_images_file()
-        bot.send_message(message.chat.id, "<pre>DONE</pre>", parse_mode='html')
-
-
-@bot.message_handler(commands=[RECALL_NEWSLETTER_COMMAND])
-def recall_newsletter(message):
-    if not is_admin(message.chat.id):
-        handle_free_text(message)
-    else:
-        global last_newsletter_messages
-        for message_info in last_newsletter_messages:
-            bot.delete_message(message_info['chat_id'], message_info['message_id'])
-            bot.send_message(message.chat.id,
-                             '<pre>MESSAGE %s DELETED FROM CHAT %s</pre>' % (
-                                 message_info['message_id'], message_info['chat_id'])
-                             , parse_mode='html')
-
-        bot.send_message(message.chat.id, "<pre>RECALL OPERATION COMPLETED SUCCESSFULLY</pre>", parse_mode='html')
+    bot.send_message(chat_id_to_reply, message.text, parse_mode='markdown')
+    bot.send_message(message.chat.id, '<pre>SENT TO %s:</pre>'
+                     % how_to_call_this_user(bot.get_chat(chat_id_to_reply)), parse_mode='html')
+    bot.send_message(message.chat.id, message.text, parse_mode='markdown')
 
 
 @bot.message_handler(content_types=['text'])
@@ -356,8 +397,9 @@ def handle_text(message):
 
 @bot.message_handler(content_types=["photo"])
 def handle_photo(message):
-    received_image = get_image_from_message(message)
-    cache.set_image(message.chat.id, received_image)
+    file_id = message.photo[-1].file_id
+    # received_image = get_image_from_message(message)
+    cache.set_image(message.chat.id, file_id)
     build_and_send_image(message)
 
 
@@ -409,7 +451,7 @@ def as_file_reply_markup(file_id):
                                                     callback_data='%s%s' % (GET_AS_FILE_CALLBACK_DATA, file_id))
     get_as_file_reply_markup = types.InlineKeyboardMarkup()
     get_as_file_reply_markup.add(get_as_file_button)
-    get_as_file_reply_markup.add(library_button)
+    get_as_file_reply_markup.add(gallery_button)
 
     return get_as_file_reply_markup
 
@@ -419,7 +461,7 @@ def as_photo_reply_markup(file_id):
                                                      callback_data='%s%s' % (GET_AS_PHOTO_CALLBACK_DATA, file_id))
     get_as_photo_reply_markup = types.InlineKeyboardMarkup()
     get_as_photo_reply_markup.add(get_as_photo_button)
-    get_as_photo_reply_markup.add(library_button)
+    get_as_photo_reply_markup.add(gallery_button)
 
     return get_as_photo_reply_markup
 
@@ -434,18 +476,19 @@ def get_as_file_callback(call):
     else:
         file_id = call.data[len(GET_AS_FILE_CALLBACK_DATA):]
 
-    url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
-    r = requests.get(url)
-    with io.BytesIO(r.content) as f:
-        f.name = 'image.jpg'
-        try:
+    try:
+        url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
+        r = requests.get(url)
+        with io.BytesIO(r.content) as f:
+            f.name = 'image.jpg'
             bot.edit_message_caption('', chat_id, message_id, reply_markup=as_file_reply_markup(file_id))
-            bot.send_document(chat_id, f, reply_markup=as_photo_reply_markup(file_id))
+            bot.send_document(chat_id, f, reply_markup=as_photo_reply_markup(file_id),
+                              disable_notification=True)
             bot.delete_message(chat_id, message_id)
-        except telebot.apihelper.ApiException as e:
-            True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
+    except telebot.apihelper.ApiException as e:
+        True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
 
-        bot.answer_callback_query(call.id)
+    bot.answer_callback_query(call.id)
 
 
 @bot.callback_query_handler(lambda call: call.data.startswith(GET_AS_PHOTO_CALLBACK_DATA))
@@ -455,16 +498,189 @@ def get_as_photo_callback(call):
     message_id = message.message_id
     file_id = call.data[len(GET_AS_PHOTO_CALLBACK_DATA):]
 
-    url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
-    r = requests.get(url)
-    with io.BytesIO(r.content) as f:
-        try:
+    try:
+        url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
+        r = requests.get(url)
+        with io.BytesIO(r.content) as f:
+            f.name = 'image.jpg'
             bot.edit_message_caption('', chat_id, message_id, reply_markup=as_photo_reply_markup(file_id))
-            bot.send_photo(chat_id, f, reply_markup=as_file_reply_markup(file_id))
+            bot.send_photo(chat_id, f, reply_markup=as_file_reply_markup(file_id),
+                           disable_notification=True)
             bot.delete_message(chat_id, message_id)
-        except telebot.apihelper.ApiException as e:
-            True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
+    except telebot.apihelper.ApiException as e:
+        True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
 
+    bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(RECALL_NEWSLETTER_CALLBACK_DATA))
+def confirm_recall(call):
+    if is_admin(call.message.chat.id):
+        confirm_recall_button = types.InlineKeyboardButton(text=CONFIRM_RECALL_BUTTON,
+                                                           callback_data=RECALL_CONFIRMED_CALLBACK_DATA)
+        false_alarm_button = types.InlineKeyboardButton(text=FALSE_ALARM_BUTTON,
+                                                        callback_data=FALSE_ALARM_CALLBACK_DATA)
+        confirm_recall_reply_markup = types.InlineKeyboardMarkup()
+        confirm_recall_reply_markup.add(confirm_recall_button)
+        confirm_recall_reply_markup.add(false_alarm_button)
+
+        chat_id = call.message.chat.id
+        message_id = call.message.message_id
+        # bot.edit_message_reply_markup(chat_id, message_id, reply_markup=confirm_recall_reply_markup)
+        bot.answer_callback_query(call.id)
+        bot.delete_message(chat_id, message_id)
+        bot.send_message(chat_id, '<pre>CONFIRM RECALL</pre>', parse_mode='html', disable_notification=True,
+                         reply_markup=confirm_recall_reply_markup)
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(RECALL_CONFIRMED_CALLBACK_DATA))
+def recall(call):
+    if is_admin(call.message.chat.id):
+        message = call.message
+        chat_id = message.chat.id
+        message_id = message.message_id
+        bot.answer_callback_query(call.id)
+        bot.delete_message(chat_id, message_id)
+        log_message = bot.send_message(chat_id, '<pre>RECALL OPERATION INITIATED...</pre>', parse_mode='html')
+        global last_newsletter_messages
+        for message_info in last_newsletter_messages:
+            bot.delete_message(message_info['chat_id'], message_info['message_id'])
+            log_message = bot.edit_message_text(
+                '<pre>%s\nMESSAGE %s DELETED FROM CHAT %s</pre>' % (
+                    log_message.text, message_info['message_id'], message_info['chat_id']),
+                chat_id=log_message.chat.id, message_id=log_message.message_id, parse_mode='html')
+
+        bot.edit_message_text("<pre>%s\nRECALL OPERATION COMPLETED SUCCESSFULLY</pre>" % log_message.text,
+                              chat_id=message.chat.id, message_id=log_message.message_id, parse_mode='html')
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(NEWSLETTER_CALLBACK_DATA))
+def show_newsletter_control_panel(call):
+    if is_admin(call.message.chat.id):
+        false_alarm_button = types.InlineKeyboardButton(text=FALSE_ALARM_BUTTON,
+                                                        callback_data=FALSE_ALARM_CALLBACK_DATA)
+        make_newsletter_button = types.InlineKeyboardButton(text=MAKE_NEWSLETTER_BUTTON,
+                                                            callback_data=MAKE_NEWSLETTER_CALLBACK_DATA)
+        recall_newsletter_button = types.InlineKeyboardButton(text=RECALL_NEWSLETTER_BUTTON,
+                                                              callback_data=RECALL_NEWSLETTER_CALLBACK_DATA)
+        add_recipients_button = types.InlineKeyboardButton(text=ADD_RECIPIENTS_BUTTON,
+                                                           callback_data=ADD_RECIPIENTS_CALLBACK_DATA)
+        newsletter_panel_reply_markup = types.InlineKeyboardMarkup()
+        newsletter_panel_reply_markup.add(make_newsletter_button)
+        newsletter_panel_reply_markup.add(add_recipients_button)
+        newsletter_panel_reply_markup.add(recall_newsletter_button)
+        newsletter_panel_reply_markup.add(false_alarm_button)
+
+        bot.answer_callback_query(call.id)
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        bot.send_message(call.message.chat.id, '<pre>NEWSLETTER MANAGEMENT</pre>', parse_mode='html',
+                         disable_notification=True,
+                         reply_markup=newsletter_panel_reply_markup)
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(ADD_RECIPIENTS_CALLBACK_DATA))
+def add_recipients(call):
+    if is_admin(call.message.chat.id):
+
+        handle_preliminary_command(call.message,
+                                   "<pre>CURRENT MAILING LIST:\n\n%s\n\nENTER NEW MAILING LIST</pre>"
+                                   % str(mailing_list), ChatState.SPECIFYING_MAILING_LIST,
+                                   reply_markup=false_alarm_reply_markup)
+
+        bot.answer_callback_query(call.id)
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(MAKE_NEWSLETTER_CALLBACK_DATA))
+def handle_make_newsletter(call):
+    if is_admin(call.message.chat.id):
+        message = call.message
+        chat_id = message.chat.id
+        message_id = message.message_id
+        bot.answer_callback_query(call.id)
+        bot.delete_message(chat_id, message_id)
+
+        handle_preliminary_command(call.message,
+                                   "<pre>ENTER NEWSLETTER MESSAGE</pre>",
+                                   ChatState.ENTERING_NEWSLETTER_MESSAGE, false_alarm_reply_markup)
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(FALSE_ALARM_CALLBACK_DATA))
+def false_alarm(call):
+    if is_admin(call.message.chat.id):
+        message = call.message
+        chat_id = message.chat.id
+        message_id = message.message_id
+        bot.answer_callback_query(call.id)
+        bot.delete_message(chat_id, message_id)
+        show_debug_menu(call.message.chat, silently=True)
+        cache.set_state(chat_id, ChatState.FREE)
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(HIDE_MENU_CALLBACK_DATA))
+def hide_menu(call):
+    if is_admin(call.message.chat.id):
+        cache.set_state(call.message.chat.id, ChatState.FREE)
+        bot.answer_callback_query(call.id)
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(UPDATE_INLINE_STOCKS_CALLBACK_DATA))
+def update_inline_stocks(call):
+    if is_admin(call.message.chat.id):
+        bot.answer_callback_query(call.id)
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        update_stock_images_file()
+        bot.send_message(call.message.chat.id, "<pre>STOCKS SUCCESSFULLY UPDATED</pre>", parse_mode='html')
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(REPLY_CALLBACK_DATA))
+def force_reply_to_debug_message(call):
+    if is_admin(call.message.chat.id):
+        chat_id = call.message.chat.id
+
+        calldata = call.data.split()
+        chat_id_to_reply = calldata[1]
+        message_id_to_reply = calldata[2]
+
+        cache.set_replying_to(chat_id, {'chat_id': chat_id_to_reply, 'message_id': message_id_to_reply})
+        cache.set_state(chat_id, ChatState.REPLYING_TO_MESSAGE)
+
+        # TODO: Force reply here!
+
+        bot.answer_callback_query(call.id)
+    else:
+        bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(lambda call: call.data.startswith(BACKGROUND_PHOTO_CALLBACK_DATA))
+def save_photo(call):
+    if is_admin(call.message.chat.id):
+        cache.set_state(call.message.chat.id, ChatState.FREE)
+        file_id = call.data[len(BACKGROUND_PHOTO_CALLBACK_DATA):]
+        url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
+        r = requests.get(url)
+        with io.BytesIO(r.content) as f:
+            f.name = 'image.jpg'
+            bot.send_photo(call.message.chat.id, f, parse_mode='html', disable_notification=True)
+        bot.answer_callback_query(call.id)
+    else:
         bot.answer_callback_query(call.id)
 
 
