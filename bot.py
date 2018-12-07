@@ -37,7 +37,7 @@ go_to_library_reply_markup.add(library_button)
 
 def send_message_to_admins(message):
     for admin in ADMINS:
-        bot.send_message(admin, message, reply_markup=go_to_library_reply_markup)
+        bot.send_message(admin, message, reply_markup=go_to_library_reply_markup, parse_mode='html')
 
 
 def handle_exception(exception):
@@ -105,9 +105,12 @@ def debug_message_processing(message):
     chat_id = message.chat.id
 
     if not is_admin(chat_id):
-        send_message_to_admins("MESSAGE FROM " + safe_cast(message.chat.first_name, str, '/empty_first_name/')
-                               + " @" + safe_cast(message.chat.username, str, '/empty_username/')
-                               + " " + str(chat_id) + "\n\n" + safe_cast(message.text, str, '/empty_message_text/'))
+        send_message_to_admins(
+            "<pre>MESSAGE FROM %s </pre>@%s<pre> %s</pre>\n\n%s" % (
+                safe_cast(message.chat.first_name, str, '/empty_first_name/'),
+                safe_cast(message.chat.username, str, '`/empty_username/`'),
+                str(chat_id),
+                safe_cast(message.text, str, '`/empty_message_text/`')))
 
 
 def handle_free_text(message):
@@ -146,8 +149,9 @@ def set_mailing_list(message):
         if validate_chat_id(chat_id_for_list):
             mailing_list.append(chat_id_for_list)
 
-    handle_preliminary_admin_command(chat_id, "MAILING LIST:\n\n" + str(mailing_list)
-                                     + "\n\nTO SEND A NEWSLETTER TYPE /" + SEND_NEWSLETTER_COMMAND, ChatState.FREE)
+    handle_preliminary_admin_command(chat_id,
+                                     "<pre>MAILING LIST:</pre>\n\n<pre>%s</pre>\n\n<pre>TO SEND A NEWSLETTER TYPE </pre>/%s"
+                                     % (str(mailing_list), SEND_NEWSLETTER_COMMAND), ChatState.FREE)
 
 
 def enter_newsletter_message(message):
@@ -156,9 +160,9 @@ def enter_newsletter_message(message):
     cache.set_cached_message(chat_id, message)
     message = cache.get_cached_message(chat_id)
 
-    bot.send_message(chat_id, "YOUR MESSAGE:")
+    bot.send_message(chat_id, "<pre>YOUR MESSAGE:</pre>", parse_mode='html')
     bot.send_message(chat_id, message.text, parse_mode="markdown", disable_web_page_preview=True)
-    bot.send_message(chat_id, "ENTER CURRENT DAY OF MONTH TO CONFIRM")
+    bot.send_message(chat_id, "<pre>ENTER CURRENT DAY OF MONTH TO CONFIRM</pre>", parse_mode='html')
     cache.set_state(chat_id, ChatState.CONFIRMING_NEWSLETTER)
 
 
@@ -170,22 +174,23 @@ def confirm_and_make_newsletter(message):
     if message.text == str(current_time().day):
         last_newsletter_messages = []
         if len(mailing_list) > 0:
+            log_message = bot.send_message(chat_id, '<pre>MAKING NEWSLETTER...\n</pre>', parse_mode='html')
             for chat_id_from_list in mailing_list:
                 try:
-                    message_to_delete = bot.send_message(chat_id, "SENDING TO " + chat_id_from_list + "...")
+                    bot.edit_message_text('<pre>%s\nSENDING TO %s...</pre>' % (log_message.text, chat_id_from_list),
+                                          message_id=log_message.message_id, chat_id=chat_id, parse_mode='html')
 
                     sent_message = bot.send_message(chat_id_from_list, message_to_send,
                                                     parse_mode="markdown",
                                                     disable_web_page_preview=True,
                                                     reply_markup=go_to_library_reply_markup)
-
-                    bot.delete_message(chat_id, message_to_delete.message_id)
-
                     last_newsletter_messages.append(
                         {'chat_id': chat_id_from_list, 'message_id': sent_message.message_id})
 
-                    bot.send_message(chat_id, "SENT TO " + str(chat_id_from_list) + ". MESSAGE ID: " + str(
-                        sent_message.message_id))
+                    log_message = bot.edit_message_text('<pre>%s\nSENT TO %s. MESSAGE ID: %s</pre>' % (
+                        log_message.text, chat_id_from_list, sent_message.message_id),
+                                                        message_id=log_message.message_id, chat_id=chat_id,
+                                                        parse_mode='html')
                 except telebot.apihelper.ApiException as e:
                     time.sleep(1)
                     chat = bot.get_chat(chat_id_from_list)
@@ -195,7 +200,8 @@ def confirm_and_make_newsletter(message):
                                      + ' ' + safe_cast(chat.first_name, str, '/empty_first_name/')
                                      + ' ' + safe_cast(chat.last_name, str, '/empty_last_name/'))
                     handle_exception(e)
-            bot.send_message(chat_id, 'ALL SENT')
+            bot.edit_message_text('<pre>%s\nALL SENT</pre>' % log_message.text,
+                                  message_id=log_message.message_id, chat_id=chat_id, parse_mode='html')
             cache.set_state(chat_id, ChatState.FREE)
         else:
             bot.send_message(chat_id, 'MAILING LIST IS EMPTY')
@@ -206,7 +212,7 @@ def confirm_and_make_newsletter(message):
 
 def handle_preliminary_admin_command(chat_id, text_to_send, state_to_set):
     cache.set_state(chat_id, state_to_set)
-    bot.send_message(chat_id, text_to_send)
+    bot.send_message(chat_id, text_to_send, parse_mode='html')
 
 
 def handle_preliminary_command(message, text_to_send, state_to_set):
@@ -239,13 +245,13 @@ def send_photo_debug_info(chat, photo, timestamp):
         first_name = chat.first_name
         last_name = chat.last_name
         username = chat.username
-        caption = "PHOTO BY " + safe_cast(first_name, str, '/empty_first_name/') \
-                  + " " + safe_cast(last_name, str, '/empty_last_name/') \
-                  + " @" + safe_cast(username, str, '/empty_username/') \
-                  + " " + str(chat_id) \
-                  + ", " + str(timezoned_time(timestamp))
+        caption = "<pre>PHOTO BY %s %s </pre>@%s<pre> %s, %s</pre>" % (
+            safe_cast(first_name, str, '/empty_first_name/'),
+            safe_cast(last_name, str, '/empty_last_name/'),
+            safe_cast(username, str, '`/empty_username/`'),
+            str(chat_id), str(timezoned_time(timestamp)))
         for admin in ADMINS:
-            bot.send_photo(admin, image_to_file(photo, SENT_IMAGE_FILE_NAME), caption=caption)
+            bot.send_photo(admin, image_to_file(photo, SENT_IMAGE_FILE_NAME), caption=caption, parse_mode='html')
 
 
 def build_and_send_image(message):
@@ -287,14 +293,15 @@ def handle_start_help(message):
 @bot.message_handler(commands=[SET_MAILING_LIST_COMMAND])
 def handle_mailing_list_setter(message):
     handle_preliminary_command(message,
-                               "CURRENT MAILING LIST: \n\n" + str(mailing_list) + "\n\nENTER NEW MAILING LIST",
+                               "<pre>CURRENT MAILING LIST: </pre>\n\n<pre>%s</pre>\n\n<pre>ENTER NEW MAILING LIST</pre>" % str(
+                                   mailing_list),
                                ChatState.SPECIFYING_MAILING_LIST)
 
 
 @bot.message_handler(commands=[SEND_NEWSLETTER_COMMAND])
 def handle_make_newsletter(message):
     handle_preliminary_command(message,
-                               "ENTER NEWSLETTER MESSAGE",
+                               "<pre>ENTER NEWSLETTER MESSAGE</pre>",
                                ChatState.ENTERING_NEWSLETTER_MESSAGE)
 
 
@@ -304,7 +311,7 @@ def handle_update_stocks(message):
         handle_free_text(message)
     else:
         update_stock_images_file()
-        bot.send_message(message.chat.id, "DONE")
+        bot.send_message(message.chat.id, "<pre>DONE</pre>", parse_mode='html')
 
 
 @bot.message_handler(commands=[RECALL_NEWSLETTER_COMMAND])
@@ -316,9 +323,11 @@ def recall_newsletter(message):
         for message_info in last_newsletter_messages:
             bot.delete_message(message_info['chat_id'], message_info['message_id'])
             bot.send_message(message.chat.id,
-                             'MESSAGE %s DELETED FROM CHAT %s' % (message_info['message_id'], message_info['chat_id']))
+                             '<pre>MESSAGE %s DELETED FROM CHAT %s</pre>' % (
+                                 message_info['message_id'], message_info['chat_id'])
+                             , parse_mode='html')
 
-        bot.send_message(message.chat.id, "RECALL OPERATION COMPLETED SUCCESSFULLY")
+        bot.send_message(message.chat.id, "<pre>RECALL OPERATION COMPLETED SUCCESSFULLY</pre>", parse_mode='html')
 
 
 @bot.message_handler(content_types=['text'])
@@ -363,7 +372,7 @@ def update_inline_query_results():
     global inline_query_results
     id = 1
     for file_id in stock_photo_ids:
-        inline_query_results.append(types.InlineQueryResultCachedPhoto(str(id), file_id, parse_mode='Markdown'))
+        inline_query_results.append(types.InlineQueryResultCachedPhoto(str(id), file_id, parse_mode='html'))
         # url = 'https://www.iea.org/media/news/2017/171113WEO2017MainImage.jpg'
         # inline_query_results.append(types.InlineQueryResultPhoto(str(id), url, url))
         id += 1
@@ -385,10 +394,31 @@ def query_text(inline_query):
         print(e)
 
 
+def as_file_reply_markup(file_id):
+    get_as_file_button = types.InlineKeyboardButton(text=GET_AS_FILE_BUTTON,
+                                                    callback_data='%s%s' % (GET_AS_FILE_CALLBACK_DATA, file_id))
+    get_as_file_reply_markup = types.InlineKeyboardMarkup()
+    get_as_file_reply_markup.add(get_as_file_button)
+    get_as_file_reply_markup.add(library_button)
+
+    return get_as_file_reply_markup
+
+
+def as_photo_reply_markup(file_id):
+    get_as_photo_button = types.InlineKeyboardButton(text=GET_AS_PHOTO_BUTTON,
+                                                     callback_data='%s%s' % (GET_AS_PHOTO_CALLBACK_DATA, file_id))
+    get_as_photo_reply_markup = types.InlineKeyboardMarkup()
+    get_as_photo_reply_markup.add(get_as_photo_button)
+    get_as_photo_reply_markup.add(library_button)
+
+    return get_as_photo_reply_markup
+
+
 @bot.callback_query_handler(lambda call: call.data.startswith(GET_AS_FILE_CALLBACK_DATA))
 def get_as_file_callback(call):
     message = call.message
     chat_id = message.chat.id
+    message_id = message.message_id
     if len(call.data) == len(GET_AS_FILE_CALLBACK_DATA):
         file_id = message.photo[-1].file_id
     else:
@@ -398,18 +428,12 @@ def get_as_file_callback(call):
     r = requests.get(url)
     with io.BytesIO(r.content) as f:
         f.name = 'image.jpg'
-
-        get_as_photo_button = types.InlineKeyboardButton(text=GET_AS_PHOTO_BUTTON,
-                                                         callback_data='%s%s' % (GET_AS_PHOTO_CALLBACK_DATA, file_id))
-        get_as_photo_reply_markup = types.InlineKeyboardMarkup()
-        get_as_photo_reply_markup.add(get_as_photo_button)
-        get_as_photo_reply_markup.add(library_button)
-
         try:
-            bot.delete_message(chat_id, message.message_id)
-            bot.send_document(chat_id, f, reply_markup=get_as_photo_reply_markup)
-        except Exception as e:
-            True  # Do nothing
+            bot.edit_message_caption('', chat_id, message_id, reply_markup=as_file_reply_markup(file_id))
+            bot.send_document(chat_id, f, reply_markup=as_photo_reply_markup(file_id))
+            bot.delete_message(chat_id, message_id)
+        except telebot.apihelper.ApiException as e:
+            True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
 
         bot.answer_callback_query(call.id)
 
@@ -418,22 +442,18 @@ def get_as_file_callback(call):
 def get_as_photo_callback(call):
     message = call.message
     chat_id = message.chat.id
+    message_id = message.message_id
     file_id = call.data[len(GET_AS_PHOTO_CALLBACK_DATA):]
 
     url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
     r = requests.get(url)
     with io.BytesIO(r.content) as f:
-        get_as_photo_button = types.InlineKeyboardButton(text=GET_AS_FILE_BUTTON,
-                                                         callback_data='%s%s' % (GET_AS_FILE_CALLBACK_DATA, file_id))
-        get_as_file_reply_markup = types.InlineKeyboardMarkup()
-        get_as_file_reply_markup.add(get_as_photo_button)
-        get_as_file_reply_markup.add(library_button)
-
         try:
-            bot.delete_message(chat_id, message.message_id)
-            bot.send_photo(chat_id, f, reply_markup=get_as_file_reply_markup)
-        except Exception as e:
-            True  # Do nothing
+            bot.edit_message_caption('', chat_id, message_id, reply_markup=as_photo_reply_markup(file_id))
+            bot.send_photo(chat_id, f, reply_markup=as_file_reply_markup(file_id))
+            bot.delete_message(chat_id, message_id)
+        except telebot.apihelper.ApiException as e:
+            True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
 
         bot.answer_callback_query(call.id)
 

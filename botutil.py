@@ -30,6 +30,8 @@ def clear_text(text):
 
 
 def safe_cast(val, to_type, default=None):
+    if val is None:
+        return default
     try:
         return to_type(val)
     except (ValueError, TypeError):
