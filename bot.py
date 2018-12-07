@@ -481,10 +481,9 @@ def get_as_file_callback(call):
         r = requests.get(url)
         with io.BytesIO(r.content) as f:
             f.name = 'image.jpg'
-            bot.edit_message_caption('', chat_id, message_id, reply_markup=as_file_reply_markup(file_id))
+            bot.delete_message(chat_id, message_id)
             bot.send_document(chat_id, f, reply_markup=as_photo_reply_markup(file_id),
                               disable_notification=True)
-            bot.delete_message(chat_id, message_id)
     except telebot.apihelper.ApiException as e:
         True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
 
@@ -503,10 +502,9 @@ def get_as_photo_callback(call):
         r = requests.get(url)
         with io.BytesIO(r.content) as f:
             f.name = 'image.jpg'
-            bot.edit_message_caption('', chat_id, message_id, reply_markup=as_photo_reply_markup(file_id))
+            bot.delete_message(chat_id, message_id)
             bot.send_photo(chat_id, f, reply_markup=as_file_reply_markup(file_id),
                            disable_notification=True)
-            bot.delete_message(chat_id, message_id)
     except telebot.apihelper.ApiException as e:
         True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
 
