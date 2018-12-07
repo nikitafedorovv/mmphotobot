@@ -37,11 +37,11 @@ go_to_library_reply_markup.add(library_button)
 
 def send_message_to_admins(message):
     for admin in ADMINS:
-        bot.send_message(admin, message, reply_markup=go_to_library_reply_markup, parse_mode='html')
+        bot.send_message(admin, message, parse_mode='html')
 
 
 def handle_exception(exception):
-    send_message_to_admins(EXCEPTION_MESSAGE_TEXT + "\n\n" + str(exception))
+    send_message_to_admins("%s\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
 
 
 # WebhookServer, process webhook calls.
@@ -101,16 +101,32 @@ def is_admin(user):
     return str(user) in ADMINS
 
 
+def html_inline_link_to_user(chat):
+    username = chat.username
+    firstname = chat.first_name
+    lastname = chat.last_name
+    user_id = chat.id
+    if firstname is not None:
+        if lastname is not None:
+            text = "%s %s" % (firstname, lastname)
+        else:
+            text = firstname
+    elif lastname is not None:
+        text = lastname
+    elif username is not None:
+        text = '@%s' % username
+    else:
+        text = '/emptyuser/'
+    return '<a href="tg://user?id=%s">%s %s</a>' % (user_id, text, user_id)
+
+
 def debug_message_processing(message):
     chat_id = message.chat.id
 
     if not is_admin(chat_id):
-        send_message_to_admins(
-            "<pre>MESSAGE FROM %s </pre>@%s<pre> %s</pre>\n\n%s" % (
-                safe_cast(message.chat.first_name, str, '/empty_first_name/'),
-                safe_cast(message.chat.username, str, '`/empty_username/`'),
-                str(chat_id),
-                safe_cast(message.text, str, '`/empty_message_text/`')))
+        send_message_to_admins("<pre>MESSAGE FROM </pre>%s\n\n%s" % (html_inline_link_to_user(message.chat),
+                                                                     safe_cast(message.text, str,
+                                                                               '`/empty_message_text/`')))
 
 
 def handle_free_text(message):
@@ -150,7 +166,7 @@ def set_mailing_list(message):
             mailing_list.append(chat_id_for_list)
 
     handle_preliminary_admin_command(chat_id,
-                                     "<pre>MAILING LIST:</pre>\n\n<pre>%s</pre>\n\n<pre>TO SEND A NEWSLETTER TYPE </pre>/%s"
+                                     "<pre>MAILING LIST:\n\n%s\n\nTO SEND A NEWSLETTER TYPE </pre>/%s"
                                      % (str(mailing_list), SEND_NEWSLETTER_COMMAND), ChatState.FREE)
 
 
@@ -194,13 +210,12 @@ def confirm_and_make_newsletter(message):
                 except telebot.apihelper.ApiException as e:
                     time.sleep(1)
                     chat = bot.get_chat(chat_id_from_list)
-                    bot.send_message(chat_id,
-                                     'EXCEPTION THROWN WHILE SENDING TO '
-                                     + '@' + safe_cast(chat.username, str, '/empty_username/')
-                                     + ' ' + safe_cast(chat.first_name, str, '/empty_first_name/')
-                                     + ' ' + safe_cast(chat.last_name, str, '/empty_last_name/'))
-                    handle_exception(e)
-            bot.edit_message_text('<pre>%s\nALL SENT</pre>' % log_message.text,
+                    log_message = bot.edit_message_text(
+                        '<pre>%s\nEXCEPTION THROWN WHILE SENDING TO </pre>%s: <pre>%s</pre>' % (
+                            log_message.text, html_inline_link_to_user(chat), str(e)),
+                        message_id=log_message.message_id, chat_id=chat_id,
+                        parse_mode='html')
+            bot.edit_message_text('<pre>%s\nFINISHED</pre>' % log_message.text,
                                   message_id=log_message.message_id, chat_id=chat_id, parse_mode='html')
             cache.set_state(chat_id, ChatState.FREE)
         else:
@@ -242,14 +257,9 @@ def send_photo_debug_info(chat, photo, timestamp):
     chat_id = chat.id
 
     if not is_admin(chat_id):
-        first_name = chat.first_name
-        last_name = chat.last_name
-        username = chat.username
-        caption = "<pre>PHOTO BY %s %s </pre>@%s<pre> %s, %s</pre>" % (
-            safe_cast(first_name, str, '/empty_first_name/'),
-            safe_cast(last_name, str, '/empty_last_name/'),
-            safe_cast(username, str, '`/empty_username/`'),
-            str(chat_id), str(timezoned_time(timestamp)))
+        caption = "<pre>PHOTO BY </pre>%s<pre>\n%s</pre>" % (
+            html_inline_link_to_user(chat),
+            str(timezoned_time(timestamp)))
         for admin in ADMINS:
             bot.send_photo(admin, image_to_file(photo, SENT_IMAGE_FILE_NAME), caption=caption, parse_mode='html')
 
@@ -293,8 +303,8 @@ def handle_start_help(message):
 @bot.message_handler(commands=[SET_MAILING_LIST_COMMAND])
 def handle_mailing_list_setter(message):
     handle_preliminary_command(message,
-                               "<pre>CURRENT MAILING LIST: </pre>\n\n<pre>%s</pre>\n\n<pre>ENTER NEW MAILING LIST</pre>" % str(
-                                   mailing_list),
+                               "<pre>CURRENT MAILING LIST:\n\n%s\n\nENTER NEW MAILING LIST</pre>"
+                               % str(mailing_list),
                                ChatState.SPECIFYING_MAILING_LIST)
 
 
@@ -460,7 +470,7 @@ def get_as_photo_callback(call):
 
 while True:
     try:
-        send_message_to_admins(UP_MESSAGE_TEXT)
+        send_message_to_admins('<pre>I AM UP 🌚</pre>')
         # Remove webhook, it fails sometimes the set if there is a previous webhook
         bot.remove_webhook()
 
@@ -486,5 +496,5 @@ while True:
     except Exception as e:
         handle_exception(e)
     else:
-        send_message_to_admins(SHUTDOWN_MESSAGE_TEXT)
+        send_message_to_admins('<pre>SEE YA 👋</pre>')
         break
