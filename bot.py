@@ -241,6 +241,7 @@ def confirm_and_make_newsletter(message):
             log_message = bot.send_message(chat_id, '<pre>MAKING NEWSLETTER...\n</pre>', parse_mode='html')
             for chat_id_from_list in mailing_list:
                 try:
+                    time.sleep(1)
                     bot.edit_message_text('<pre>%s\nSENDING TO %s...</pre>' % (log_message.text, chat_id_from_list),
                                           message_id=log_message.message_id, chat_id=chat_id, parse_mode='html')
 
