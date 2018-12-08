@@ -328,7 +328,7 @@ def build_and_send_image(message):
     background_image = get_image_from_file_id(file_id)
 
     wait_for_an_image_message = bot.send_message(chat_id, WAIT_FOR_AN_IMAGE_MESSAGE_TEXT,
-                                                 reply_markup=types.ReplyKeyboardRemove())
+                                                 reply_markup=types.ReplyKeyboardRemove(), disable_notification=True)
 
     built_image = build_image(heading, blackout, blur, background_image)
 
@@ -337,7 +337,8 @@ def build_and_send_image(message):
     get_as_doc_reply_markup.add(get_as_file_button)
     get_as_doc_reply_markup.add(gallery_button)
 
-    bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME), reply_markup=get_as_doc_reply_markup)
+    bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME), reply_markup=get_as_doc_reply_markup,
+                   disable_notification=True)
     bot.delete_message(chat_id, wait_for_an_image_message.message_id)
 
     send_photo_debug_info(message.chat, built_image, message.date, file_id=file_id, message_id=message.message_id)
@@ -356,32 +357,77 @@ def handle_help(message):
     bot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=go_to_library_reply_markup)
 
 
-@bot.message_handler(content_types=['text'],
-                     func=lambda message: message.reply_to_message is not None and is_admin(message.chat.id)
-                                     and cache.get_state(message.chat.id) == ChatState.REPLYING_TO_MESSAGE
-                                     and message.text is not None)  # TODO: What if cache is empty?
+@bot.message_handler(
+    content_types=["text",
+                   "audio",
+                   "document",
+                   "photo",
+                   "sticker",
+                   "video",
+                   "video_note",
+                   "voice",
+                   "location"],
+    func=lambda message: message.reply_to_message is not None
+                         and message.reply_to_message.forward_from is not None
+                         and is_admin(message.chat.id))
 def reply_to_debug_message(message):
-    cache.set_state(message.chat.id, ChatState.FREE)
-    # message_with_info = message.reply_to_message
-    reply_data = cache.get_replying_to(message.chat.id)
-    chat_id_to_reply = reply_data['chat_id']
-    # message_id_to_reply = reply_data['message_id']
+    user_id_to_reply = message.reply_to_message.forward_from.id
+    to_delete = bot.send_message(message.chat.id, '<pre>SENDING TO %s...</pre>'
+                                 % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
+                                 disable_notification=True)
+    if message.content_type == "text":
+        bot.send_message(user_id_to_reply, message.text, parse_mode='markdown', reply_markup=types.ForceReply())
+    elif message.content_type == "audio":
+        bot.send_audio(user_id_to_reply, message.audio.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "document":
+        bot.send_document(user_id_to_reply, message.document.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "photo":
+        bot.send_photo(user_id_to_reply, message.photo[-1].file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "sticker":
+        bot.send_sticker(user_id_to_reply, message.sticker.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "video":
+        bot.send_video(user_id_to_reply, message.video.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "video_note":
+        bot.send_video_note(user_id_to_reply, message.video_note.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "voice":
+        bot.send_voice(user_id_to_reply, message.voice.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "location":
+        try:
+            live_period = message.location.live_period
+        except Exception as e:
+            live_period = None
+        bot.send_location(user_id_to_reply, latitude=message.location.latitude,
+                          longitude=message.location.longitude,
+                          live_period=live_period, reply_markup=types.ForceReply())
+    bot.send_message(message.chat.id, '<pre>SENT TO %s</pre>'
+                     % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
+                     disable_notification=True)
+    bot.delete_message(to_delete.chat.id, to_delete.message_id)
 
-    # TODO: Reply to exact message
-    # TODO: Cancel button etc
-    # TODO: Double photos???
 
-    # hide_menu_button = types.InlineKeyboardButton(text=HIDE_MENU_BUTTON, callback_data=HIDE_MENU_CALLBACK_DATA)
-    # reply_markup = types.InlineKeyboardMarkup()
-    # reply_markup.add(hide_menu_button)
+@bot.message_handler(content_types=["text",
+                                    "audio",
+                                    "document",
+                                    "photo",
+                                    "sticker",
+                                    "video",
+                                    "video_note",
+                                    "voice",
+                                    "location",
+                                    "contact"],
+                     func=lambda message: (message.reply_to_message is not None
+                                           and message.reply_to_message.from_user.id == bot.get_me().id
+                                           or message.reply_to_message is None and message.content_type != 'text'
+                                           and message.content_type != 'photo')
+                                          and not is_admin(message.chat.id))
+def reply_to_debug_message_not_from_admin(message):
+    for admin in ADMINS:
+        if message.content_type == "audio" or message.content_type == "sticker":
+            bot.send_message(admin, '<pre>FROM %s</pre>:' % how_to_call_this_user(message.chat), parse_mode='html')
+        bot.forward_message(admin, message.chat.id, message.message_id)
 
-    bot.send_message(chat_id_to_reply, message.text, parse_mode='markdown')
-    bot.send_message(message.chat.id, '<pre>SENT TO %s:</pre>'
-                     % how_to_call_this_user(bot.get_chat(chat_id_to_reply)), parse_mode='html')
-    bot.send_message(message.chat.id, message.text, parse_mode='markdown')
 
-
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(content_types=['text'], func=lambda message: message.reply_to_message is None)
 def handle_text(message):
     state = cache.get_state(message.chat.id)
 
@@ -395,26 +441,12 @@ def handle_text(message):
         confirm_and_make_newsletter(message)
 
 
-@bot.message_handler(content_types=["photo"])
+@bot.message_handler(content_types=["photo"], func=lambda message: message.reply_to_message is None)
 def handle_photo(message):
     file_id = message.photo[-1].file_id
     # received_image = get_image_from_message(message)
     cache.set_image(message.chat.id, file_id)
     build_and_send_image(message)
-
-
-@bot.message_handler(content_types=ALL_CONTENT_TYPES)
-def handle_any_other_message(message):
-    chat_id = message.chat.id
-
-    if not is_admin(chat_id):
-        # Forward.
-        message_id = message.message_id
-
-        for admin in ADMINS:
-            bot.forward_message(admin, chat_id, message_id)
-
-        bot.send_message(chat_id, get_dolores_emoji(), reply_markup=go_to_library_reply_markup)
 
 
 inline_query_results = []
@@ -498,13 +530,9 @@ def get_as_photo_callback(call):
     file_id = call.data[len(GET_AS_PHOTO_CALLBACK_DATA):]
 
     try:
-        url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
-        r = requests.get(url)
-        with io.BytesIO(r.content) as f:
-            f.name = 'image.jpg'
-            bot.delete_message(chat_id, message_id)
-            bot.send_photo(chat_id, f, reply_markup=as_file_reply_markup(file_id),
-                           disable_notification=True)
+        bot.delete_message(chat_id, message_id)
+        bot.send_photo(chat_id, file_id, reply_markup=as_file_reply_markup(file_id),
+                       disable_notification=True)
     except telebot.apihelper.ApiException as e:
         True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
 
@@ -652,15 +680,10 @@ def update_inline_stocks(call):
 def force_reply_to_debug_message(call):
     if is_admin(call.message.chat.id):
         chat_id = call.message.chat.id
-
         calldata = call.data.split()
         chat_id_to_reply = calldata[1]
         message_id_to_reply = calldata[2]
-
-        cache.set_replying_to(chat_id, {'chat_id': chat_id_to_reply, 'message_id': message_id_to_reply})
-        cache.set_state(chat_id, ChatState.REPLYING_TO_MESSAGE)
-
-        # TODO: Force reply here!
+        bot.forward_message(chat_id, chat_id_to_reply, message_id_to_reply, disable_notification=True)
 
         bot.answer_callback_query(call.id)
     else:
@@ -670,7 +693,6 @@ def force_reply_to_debug_message(call):
 @bot.callback_query_handler(lambda call: call.data.startswith(BACKGROUND_PHOTO_CALLBACK_DATA))
 def save_photo(call):
     if is_admin(call.message.chat.id):
-        cache.set_state(call.message.chat.id, ChatState.FREE)
         file_id = call.data[len(BACKGROUND_PHOTO_CALLBACK_DATA):]
         url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
         r = requests.get(url)

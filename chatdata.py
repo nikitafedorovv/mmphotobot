@@ -22,7 +22,6 @@ class ChatState(Enum):
     SPECIFYING_MAILING_LIST = "setting_mailing_list"
     ENTERING_NEWSLETTER_MESSAGE = "entering_newsletter_message"
     CONFIRMING_NEWSLETTER = 'confirming_newsletter'
-    REPLYING_TO_MESSAGE = 'replying_to_message'
 
 
 class ChatData:
@@ -33,7 +32,6 @@ class ChatData:
     cached_message = None
     state = ChatState.FREE
     image = default_image
-    replying_to = {}
 
     def __init__(self, chat_id):
         self.chat_id = chat_id
@@ -76,9 +74,6 @@ class ChatCache:
         self.get_chat_data_from_cache(chat_id).image = value
         pass
 
-    def set_replying_to(self, chat_id, value):
-        self.get_chat_data_from_cache(chat_id).replying_to = value
-
     def get_heading(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).heading
 
@@ -96,9 +91,6 @@ class ChatCache:
 
     def get_image(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).image
-
-    def get_replying_to(self, chat_id):
-        return self.get_chat_data_from_cache(chat_id).replying_to
 
     def heading_set(self, chat_id):
         chat_data = self.get_chat_data_from_cache(chat_id)
