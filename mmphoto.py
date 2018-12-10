@@ -8,7 +8,18 @@ MAIN_FONT_FILE_PATH = PROJECT_DIRECTORY + '/fonts/helios_cond_bold_cyr.otf'
 
 
 def gen_image(heading, image, blackout, blur):
-    image = image.resize((1920, 1080), Image.ANTIALIAS)
+    width, height = image.size
+    if width * 1.0 / height > 1920.0 / 1080:
+        new_height = 1080
+        new_width = int(new_height * width / height)
+    elif width * 1.0 / height < 1920.0 / 1080:
+        new_width = 1920
+        new_height = int(new_width * height / width)
+    else:
+        new_width = 1920
+        new_height = 1080
+
+    image = image.resize((new_width, new_height), Image.ANTIALIAS).crop((0, 0, 1920, 1080))
 
     image = image.filter(ImageFilter.GaussianBlur(blur))
 
