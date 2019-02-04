@@ -672,7 +672,8 @@ def update_inline_stocks(call):
         bot.answer_callback_query(call.id)
         bot.delete_message(call.message.chat.id, call.message.message_id)
         update_stock_images_file()
-        bot.send_message(call.message.chat.id, "<pre>STOCKS SUCCESSFULLY UPDATED</pre>", parse_mode='html')
+        bot.send_message(call.message.chat.id, "<pre>STOCKS SUCCESSFULLY UPDATED. "
+                                               "NOW REBOOT THE BOT FOR CHANGES TO BE APPLIED</pre>", parse_mode='html')
     else:
         bot.answer_callback_query(call.id)
 
