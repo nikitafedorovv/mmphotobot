@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 EXCEPTION_MESSAGE_TEXT = '‼️ EXCEPTION HAS BEEN THROWN'
-GO_TO_INLINE_BUTTON = "🌄🌌 Gallery 🌃🎇"
+GO_TO_INLINE_BUTTON = "🌀 Gallery 🌀"  # "🌄🌌 Gallery 🌃🎇"
 GET_AS_FILE_BUTTON = "View as file"
 GET_AS_PHOTO_BUTTON = "View as photo"
 GET_AS_FILE_CALLBACK_DATA = "F"

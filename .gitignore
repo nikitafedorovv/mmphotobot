@@ -131,3 +131,5 @@ ENV/
 
 /research
 /images/stock_photo_ids
+__pycache__/
+nginx.conf
