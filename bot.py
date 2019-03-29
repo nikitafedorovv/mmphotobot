@@ -8,14 +8,15 @@ import time
 import cherrypy
 import requests
 import telebot
+from PIL import Image
 from telebot import types
 
+from bot_elements_config import *
 from botconfig import *
 from botspeech import *
 from botutil import *
 from chatdata import ChatCache, ChatState
 from mmphoto import gen_image
-from bot_elements_config import *
 
 telebot.logger.setLevel(logging.INFO)
 
@@ -27,6 +28,8 @@ mailing_list = set()
 
 last_newsletter_messages = []
 
+reply_to_library = dict()
+
 # Start the bot.
 bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
@@ -36,13 +39,13 @@ go_to_library_reply_markup = types.InlineKeyboardMarkup()
 go_to_library_reply_markup.add(gallery_button)
 
 
-def send_message_to_admins(message):
-    for admin in ADMINS:
-        bot.send_message(admin, message, parse_mode='html')
+def send_message_to_creators(message):
+    for creator in CREATORS:
+        bot.send_message(creator, message, parse_mode='html')
 
 
 def handle_exception(exception):
-    send_message_to_admins("<pre>%s</pre>\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
+    send_message_to_creators("<pre>%s</pre>\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
 
 
 # WebhookServer, process webhook calls.
@@ -98,8 +101,12 @@ def update_stock_images_file():
 # update_stock_images_file()
 
 
-def is_admin(user):
+def has_admin_access(user):
     return str(user) in ADMINS
+
+
+def has_creator_access(user):
+    return str(user) in CREATORS
 
 
 def how_to_call_this_user(chat):
@@ -129,10 +136,12 @@ def html_inline_link_to_user(chat):
 def debug_message_processing(message):
     chat_id = message.chat.id
 
-    if not is_admin(chat_id):
-        send_message_to_admins("<pre>MESSAGE FROM </pre>%s\n\n%s" % (html_inline_link_to_user(message.chat),
-                                                                     safe_cast(message.text, str,
-                                                                               '`/empty_message_text/`')))
+    # Rudimental
+    if not has_admin_access(chat_id):
+        send_message_to_creators("<pre>MESSAGE FROM </pre>%s\n\n%s" % (html_inline_link_to_user(message.chat),
+                                                                       safe_cast(message.text, str,
+                                                                                 '`/empty_message_text/`')))
+    # Rudimental
 
 
 def show_debug_menu(chat, silently=False):
@@ -157,7 +166,7 @@ def handle_free_text(message):
     text = message.text
     chat_id = message.chat.id
 
-    if is_admin(message.chat.id):
+    if has_creator_access(message.chat.id):
         if text == '/':
             show_debug_menu(message.chat)
             return
@@ -276,7 +285,7 @@ def confirm_and_make_newsletter(message):
 
 def handle_preliminary_command(message, text_to_send, state_to_set, reply_markup=None):
     chat_id = message.chat.id
-    if not is_admin(chat_id):
+    if not has_creator_access(chat_id):
         handle_free_text(message.text)
     else:
         cache.set_state(chat_id, state_to_set)
@@ -299,8 +308,7 @@ def send_photo_debug_info(chat, built_image, timestamp, message_id=None,
                           file_id=None):  # TODO: Proper reply etc
     chat_id = chat.id
 
-    if not is_admin(chat_id):
-
+    if not has_creator_access(chat_id):
         reply_button = types.InlineKeyboardButton(text=REPLY_BUTTON,
                                                   callback_data='%s %s %s' % (REPLY_CALLBACK_DATA, chat_id, message_id))
         background_photo_button = types.InlineKeyboardButton(text=BACKGROUND_PHOTO_BUTTON,
@@ -314,8 +322,12 @@ def send_photo_debug_info(chat, built_image, timestamp, message_id=None,
             html_inline_link_to_user(chat),
             str(timezoned_time(timestamp)))
         for admin in ADMINS:
-            bot.send_photo(admin, image_to_file(built_image, SENT_IMAGE_FILE_NAME), caption=caption, parse_mode='html',
-                           reply_markup=reply_or_save_reply_markup)
+            if str(chat_id) != str(admin):
+                bot.send_photo(admin,
+                               image_to_file(built_image, SENT_IMAGE_FILE_NAME),
+                               caption=caption,
+                               parse_mode='html',
+                               reply_markup=reply_or_save_reply_markup)
 
 
 def build_and_send_image(message):
@@ -369,41 +381,59 @@ def handle_help(message):
                    "voice",
                    "location"],
     func=lambda message: message.reply_to_message is not None
-                         and message.reply_to_message.forward_from is not None
-                         and is_admin(message.chat.id))
+                         and (message.reply_to_message.forward_from is not None
+                              or message.reply_to_message.forward_from_chat is not None)
+                         and has_admin_access(message.chat.id))
 def reply_to_debug_message(message):
-    user_id_to_reply = message.reply_to_message.forward_from.id
-    to_delete = bot.send_message(message.chat.id, '<pre>SENDING TO %s...</pre>'
-                                 % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
-                                 disable_notification=True)
-    if message.content_type == "text":
-        bot.send_message(user_id_to_reply, message.text, parse_mode='markdown', reply_markup=types.ForceReply())
-    elif message.content_type == "audio":
-        bot.send_audio(user_id_to_reply, message.audio.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "document":
-        bot.send_document(user_id_to_reply, message.document.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "photo":
-        bot.send_photo(user_id_to_reply, message.photo[-1].file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "sticker":
-        bot.send_sticker(user_id_to_reply, message.sticker.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "video":
-        bot.send_video(user_id_to_reply, message.video.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "video_note":
-        bot.send_video_note(user_id_to_reply, message.video_note.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "voice":
-        bot.send_voice(user_id_to_reply, message.voice.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "location":
-        try:
-            live_period = message.location.live_period
-        except Exception as e:
-            live_period = None
-        bot.send_location(user_id_to_reply, latitude=message.location.latitude,
-                          longitude=message.location.longitude,
-                          live_period=live_period, reply_markup=types.ForceReply())
-    bot.send_message(message.chat.id, '<pre>SENT TO %s</pre>'
-                     % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
-                     disable_notification=True)
-    bot.delete_message(to_delete.chat.id, to_delete.message_id)
+    user_id = message.chat.id
+    if message.reply_to_message.forward_from is None:
+        bot.send_message(user_id, '<pre>This message cannot be replied to. Wait for an update for bot :(</pre>',
+                         parse_mode='html')
+    else:
+        user_id_to_reply = message.reply_to_message.forward_from.id
+        to_delete = bot.send_message(user_id, '<pre>SENDING TO %s...</pre>'
+                                     % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
+                                     disable_notification=True)
+        if str(user_id) in CREATORS:
+            role = 'CREATOR'
+        else:
+            role = 'ADMIN'
+
+        for admin_id in ADMINS:
+            if str(admin_id) != str(user_id):
+                bot.send_message(admin_id, "<pre>ANSWER FROM %s</pre> %s. <pre>MESSAGE:</pre>" % (
+                    role, html_inline_link_to_user(message.chat)),
+                                 parse_mode='html')
+
+        if message.content_type == "text":
+            bot.send_message(user_id_to_reply, message.text, parse_mode='markdown', reply_markup=types.ForceReply())
+        elif message.content_type == "audio":
+            bot.send_audio(user_id_to_reply, message.audio.file_id, reply_markup=types.ForceReply())
+        elif message.content_type == "document":
+            bot.send_document(user_id_to_reply, message.document.file_id, reply_markup=types.ForceReply())
+        elif message.content_type == "photo":
+            bot.send_photo(user_id_to_reply, message.photo[-1].file_id, reply_markup=types.ForceReply())
+        elif message.content_type == "sticker":
+            bot.send_sticker(user_id_to_reply, message.sticker.file_id, reply_markup=types.ForceReply())
+        elif message.content_type == "video":
+            bot.send_video(user_id_to_reply, message.video.file_id, reply_markup=types.ForceReply())
+        elif message.content_type == "video_note":
+            bot.send_video_note(user_id_to_reply, message.video_note.file_id, reply_markup=types.ForceReply())
+        elif message.content_type == "voice":
+            bot.send_voice(user_id_to_reply, message.voice.file_id, reply_markup=types.ForceReply())
+        elif message.content_type == "location":
+            try:
+                live_period = message.location.live_period
+            except Exception as e:
+                live_period = None
+            bot.send_location(user_id_to_reply, latitude=message.location.latitude,
+                              longitude=message.location.longitude,
+                              live_period=live_period, reply_markup=types.ForceReply())
+
+        bot.send_message(message.chat.id, '<pre>SENT TO %s</pre>'
+                         % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
+                         disable_notification=True)
+        bot.delete_message(to_delete.chat.id, to_delete.message_id)
 
 
 @bot.message_handler(content_types=["text",
@@ -420,12 +450,17 @@ def reply_to_debug_message(message):
                                            and message.reply_to_message.from_user.id == bot.get_me().id
                                            or message.reply_to_message is None and message.content_type != 'text'
                                            and message.content_type != 'photo')
-                                          and not is_admin(message.chat.id))
+                                          and not has_creator_access(message.chat.id))
 def reply_to_debug_message_not_from_admin(message):
     for admin in ADMINS:
-        if message.content_type == "audio" or message.content_type == "sticker":
-            bot.send_message(admin, '<pre>FROM %s</pre>:' % how_to_call_this_user(message.chat), parse_mode='html')
-        bot.forward_message(admin, message.chat.id, message.message_id)
+        if str(message.chat.id) != str(admin):
+            if message.content_type == "audio" or message.content_type == "sticker":
+                bot.send_message(admin, '<pre>FROM %s</pre>:' % how_to_call_this_user(message.chat), parse_mode='html')
+            forwarded_message = bot.forward_message(admin, message.chat.id, message.message_id)
+            if forwarded_message.forward_from is None:
+                user_id = message.chat.id
+                bot.send_message(admin, '<pre>This message cannot be replied to. Wait for an update for bot :(</pre>',
+                                 parse_mode='html')
 
 
 @bot.message_handler(content_types=['text'], func=lambda message: message.reply_to_message is None)
@@ -542,7 +577,7 @@ def get_as_photo_callback(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(RECALL_NEWSLETTER_CALLBACK_DATA))
 def confirm_recall(call):
-    if is_admin(call.message.chat.id):
+    if has_creator_access(call.message.chat.id):
         confirm_recall_button = types.InlineKeyboardButton(text=CONFIRM_RECALL_BUTTON,
                                                            callback_data=RECALL_CONFIRMED_CALLBACK_DATA)
         false_alarm_button = types.InlineKeyboardButton(text=FALSE_ALARM_BUTTON,
@@ -564,7 +599,7 @@ def confirm_recall(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(RECALL_CONFIRMED_CALLBACK_DATA))
 def recall(call):
-    if is_admin(call.message.chat.id):
+    if has_creator_access(call.message.chat.id):
         message = call.message
         chat_id = message.chat.id
         message_id = message.message_id
@@ -587,7 +622,7 @@ def recall(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(NEWSLETTER_CALLBACK_DATA))
 def show_newsletter_control_panel(call):
-    if is_admin(call.message.chat.id):
+    if has_creator_access(call.message.chat.id):
         false_alarm_button = types.InlineKeyboardButton(text=FALSE_ALARM_BUTTON,
                                                         callback_data=FALSE_ALARM_CALLBACK_DATA)
         make_newsletter_button = types.InlineKeyboardButton(text=MAKE_NEWSLETTER_BUTTON,
@@ -613,7 +648,7 @@ def show_newsletter_control_panel(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(ADD_RECIPIENTS_CALLBACK_DATA))
 def add_recipients(call):
-    if is_admin(call.message.chat.id):
+    if has_creator_access(call.message.chat.id):
 
         handle_preliminary_command(call.message,
                                    "<pre>CURRENT MAILING LIST:\n\n%s\n\nENTER NEW MAILING LIST</pre>"
@@ -628,7 +663,7 @@ def add_recipients(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(MAKE_NEWSLETTER_CALLBACK_DATA))
 def handle_make_newsletter(call):
-    if is_admin(call.message.chat.id):
+    if has_creator_access(call.message.chat.id):
         message = call.message
         chat_id = message.chat.id
         message_id = message.message_id
@@ -644,7 +679,7 @@ def handle_make_newsletter(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(FALSE_ALARM_CALLBACK_DATA))
 def false_alarm(call):
-    if is_admin(call.message.chat.id):
+    if has_creator_access(call.message.chat.id):
         message = call.message
         chat_id = message.chat.id
         message_id = message.message_id
@@ -658,7 +693,7 @@ def false_alarm(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(HIDE_MENU_CALLBACK_DATA))
 def hide_menu(call):
-    if is_admin(call.message.chat.id):
+    if has_creator_access(call.message.chat.id):
         cache.set_state(call.message.chat.id, ChatState.FREE)
         bot.answer_callback_query(call.id)
         bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -668,7 +703,7 @@ def hide_menu(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(UPDATE_INLINE_STOCKS_CALLBACK_DATA))
 def update_inline_stocks(call):
-    if is_admin(call.message.chat.id):
+    if has_creator_access(call.message.chat.id):
         bot.answer_callback_query(call.id)
         bot.delete_message(call.message.chat.id, call.message.message_id)
         update_stock_images_file()
@@ -680,12 +715,18 @@ def update_inline_stocks(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(REPLY_CALLBACK_DATA))
 def force_reply_to_debug_message(call):
-    if is_admin(call.message.chat.id):
+    if has_admin_access(call.message.chat.id):
         chat_id = call.message.chat.id
         calldata = call.data.split()
         chat_id_to_reply = calldata[1]
         message_id_to_reply = calldata[2]
-        bot.forward_message(chat_id, chat_id_to_reply, message_id_to_reply, disable_notification=True)
+        forwarded_message = bot.forward_message(chat_id, chat_id_to_reply, message_id_to_reply,
+                                                disable_notification=True)
+
+        if forwarded_message.forward_from is None:
+            user_id = chat_id_to_reply
+            bot.send_message(chat_id, '<pre>This message cannot be replied to. Wait for an update for bot :(</pre>',
+                             parse_mode='html')
 
         bot.answer_callback_query(call.id)
     else:
@@ -694,7 +735,7 @@ def force_reply_to_debug_message(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(BACKGROUND_PHOTO_CALLBACK_DATA))
 def save_photo(call):
-    if is_admin(call.message.chat.id):
+    if has_admin_access(call.message.chat.id):
         file_id = call.data[len(BACKGROUND_PHOTO_CALLBACK_DATA):]
         url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
         r = requests.get(url)
@@ -708,7 +749,7 @@ def save_photo(call):
 
 while True:
     try:
-        send_message_to_admins('<pre>I AM UP 🌚</pre>')
+        send_message_to_creators('<pre>I AM UP 🌚</pre>')
         # Remove webhook, it fails sometimes the set if there is a previous webhook
         bot.remove_webhook()
 
@@ -734,5 +775,5 @@ while True:
     except Exception as e:
         handle_exception(e)
     else:
-        send_message_to_admins('<pre>SEE YA 👋</pre>')
+        send_message_to_creators('<pre>SEE YA 👋</pre>')
         break

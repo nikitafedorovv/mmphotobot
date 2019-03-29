@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import os
-from PIL import Image
 
 PROJECT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 API_TOKEN = os.environ.get('PHOTOBOT_TOKEN')
+CREATORS = os.environ.get('PHOTOBOT_CREATORS').split(',')
+if CREATORS[0] == '':
+    CREATORS = []
 ADMINS = os.environ.get('PHOTOBOT_ADMINS').split(',')
+if ADMINS[0] == '':
+    ADMINS = []
+ADMINS = CREATORS + ADMINS
 PROD = os.environ.get('PROD')
 WEBHOOK_HOST = os.environ.get('HOST_IP')
 
