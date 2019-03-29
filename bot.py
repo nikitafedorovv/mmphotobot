@@ -38,10 +38,15 @@ gallery_button = types.InlineKeyboardButton(text=GO_TO_INLINE_BUTTON, switch_inl
 go_to_library_reply_markup = types.InlineKeyboardMarkup()
 go_to_library_reply_markup.add(gallery_button)
 
+delete_button = types.InlineKeyboardButton(text=HIDE_MENU_BUTTON, callback_data=HIDE_MENU_CALLBACK_DATA)
+delete_button_reply_markup = types.InlineKeyboardMarkup()
+delete_button_reply_markup.add(delete_button)
+
 
 def send_message_to_creators(message):
     for creator in CREATORS:
-        bot.send_message(creator, message, parse_mode='html')
+        bot.send_message(creator, message,
+                         parse_mode='html', reply_markup=delete_button_reply_markup)
 
 
 def handle_exception(exception):
@@ -417,7 +422,7 @@ def reply_to_debug_message(message):
         bot.send_message(user_id,
                          '<pre>MESSAGE HAS NOT BEEN SENT. TO REPLY PLEASE USE THE LAST MESSAGE FROM THIS USER</pre>',
                          parse_mode='html',
-                         disable_notification=True)
+                         disable_notification=True, reply_markup=delete_button_reply_markup)
 
     to_delete = bot.send_message(user_id, '<pre>SENDING TO %s...</pre>'
                                  % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
@@ -460,7 +465,7 @@ def reply_to_debug_message(message):
 
     bot.send_message(message.chat.id, '<pre>SENT TO %s</pre>'
                      % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
-                     disable_notification=True)
+                     disable_notification=True, reply_markup=delete_button_reply_markup)
     bot.delete_message(to_delete.chat.id, to_delete.message_id)
 
 
@@ -734,7 +739,8 @@ def update_inline_stocks(call):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         update_stock_images_file()
         bot.send_message(call.message.chat.id, "<pre>STOCKS SUCCESSFULLY UPDATED. "
-                                               "NOW REBOOT THE BOT FOR CHANGES TO BE APPLIED</pre>", parse_mode='html')
+                                               "NOW REBOOT THE BOT FOR CHANGES TO BE APPLIED</pre>", parse_mode='html',
+                         reply_markup=delete_button_reply_markup)
     else:
         bot.answer_callback_query(call.id)
 
