@@ -370,6 +370,23 @@ def handle_help(message):
     bot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=go_to_library_reply_markup)
 
 
+def get_user_id_to_reply(message_id):
+    return reply_to_library.get(message_id, None)
+
+
+def remember_user_id_to_reply(user_id, message_id, cash_size):
+    counter = 0
+    for key in reply_to_library.keys():
+        if reply_to_library.get(key) == user_id:
+            counter += 1
+    if counter == cash_size:
+        for key in reply_to_library.keys():
+            if reply_to_library.get(key) == user_id:
+                reply_to_library.pop(key)
+
+    reply_to_library[message_id] = user_id
+
+
 @bot.message_handler(
     content_types=["text",
                    "audio",
@@ -387,53 +404,59 @@ def handle_help(message):
 def reply_to_debug_message(message):
     user_id = message.chat.id
     if message.reply_to_message.forward_from is None:
-        bot.send_message(user_id, '<pre>This message cannot be replied to. Wait for an update for bot :(</pre>',
-                         parse_mode='html')
+        user_id_to_reply = get_user_id_to_reply(message.reply_to_message.message_id)
     else:
         user_id_to_reply = message.reply_to_message.forward_from.id
-        to_delete = bot.send_message(user_id, '<pre>SENDING TO %s...</pre>'
-                                     % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
-                                     disable_notification=True)
-        if str(user_id) in CREATORS:
-            role = 'CREATOR'
-        else:
-            role = 'ADMIN'
 
-        for admin_id in ADMINS:
-            if str(admin_id) != str(user_id):
-                bot.send_message(admin_id, "<pre>ANSWER FROM %s</pre> %s. <pre>MESSAGE:</pre>" % (
-                    role, html_inline_link_to_user(message.chat)),
-                                 parse_mode='html')
-
-        if message.content_type == "text":
-            bot.send_message(user_id_to_reply, message.text, parse_mode='markdown', reply_markup=types.ForceReply())
-        elif message.content_type == "audio":
-            bot.send_audio(user_id_to_reply, message.audio.file_id, reply_markup=types.ForceReply())
-        elif message.content_type == "document":
-            bot.send_document(user_id_to_reply, message.document.file_id, reply_markup=types.ForceReply())
-        elif message.content_type == "photo":
-            bot.send_photo(user_id_to_reply, message.photo[-1].file_id, reply_markup=types.ForceReply())
-        elif message.content_type == "sticker":
-            bot.send_sticker(user_id_to_reply, message.sticker.file_id, reply_markup=types.ForceReply())
-        elif message.content_type == "video":
-            bot.send_video(user_id_to_reply, message.video.file_id, reply_markup=types.ForceReply())
-        elif message.content_type == "video_note":
-            bot.send_video_note(user_id_to_reply, message.video_note.file_id, reply_markup=types.ForceReply())
-        elif message.content_type == "voice":
-            bot.send_voice(user_id_to_reply, message.voice.file_id, reply_markup=types.ForceReply())
-        elif message.content_type == "location":
-            try:
-                live_period = message.location.live_period
-            except Exception as e:
-                live_period = None
-            bot.send_location(user_id_to_reply, latitude=message.location.latitude,
-                              longitude=message.location.longitude,
-                              live_period=live_period, reply_markup=types.ForceReply())
-
-        bot.send_message(message.chat.id, '<pre>SENT TO %s</pre>'
-                         % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
+    if user_id_to_reply is None:
+        bot.send_message(user_id,
+                         '<pre>MESSAGE HAS NOT BEEN SENT. TO REPLY PLEASE USE THE LAST MESSAGE FROM THIS USER</pre>',
+                         parse_mode='html',
                          disable_notification=True)
-        bot.delete_message(to_delete.chat.id, to_delete.message_id)
+
+    to_delete = bot.send_message(user_id, '<pre>SENDING TO %s...</pre>'
+                                 % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
+                                 disable_notification=True)
+    if str(user_id) in CREATORS:
+        role = 'CREATOR'
+    else:
+        role = 'ADMIN'
+
+    for admin_id in ADMINS:
+        if str(admin_id) != str(user_id):
+            bot.send_message(admin_id, "<pre>ANSWER FROM %s</pre> %s. <pre>MESSAGE:</pre>" % (
+                role, html_inline_link_to_user(message.chat)),
+                             parse_mode='html')
+
+    if message.content_type == "text":
+        bot.send_message(user_id_to_reply, message.text, parse_mode='markdown', reply_markup=types.ForceReply())
+    elif message.content_type == "audio":
+        bot.send_audio(user_id_to_reply, message.audio.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "document":
+        bot.send_document(user_id_to_reply, message.document.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "photo":
+        bot.send_photo(user_id_to_reply, message.photo[-1].file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "sticker":
+        bot.send_sticker(user_id_to_reply, message.sticker.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "video":
+        bot.send_video(user_id_to_reply, message.video.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "video_note":
+        bot.send_video_note(user_id_to_reply, message.video_note.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "voice":
+        bot.send_voice(user_id_to_reply, message.voice.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "location":
+        try:
+            live_period = message.location.live_period
+        except Exception as e:
+            live_period = None
+        bot.send_location(user_id_to_reply, latitude=message.location.latitude,
+                          longitude=message.location.longitude,
+                          live_period=live_period, reply_markup=types.ForceReply())
+
+    bot.send_message(message.chat.id, '<pre>SENT TO %s</pre>'
+                     % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
+                     disable_notification=True)
+    bot.delete_message(to_delete.chat.id, to_delete.message_id)
 
 
 @bot.message_handler(content_types=["text",
@@ -458,9 +481,7 @@ def reply_to_debug_message_not_from_admin(message):
                 bot.send_message(admin, '<pre>FROM %s</pre>:' % how_to_call_this_user(message.chat), parse_mode='html')
             forwarded_message = bot.forward_message(admin, message.chat.id, message.message_id)
             if forwarded_message.forward_from is None:
-                user_id = message.chat.id
-                bot.send_message(admin, '<pre>This message cannot be replied to. Wait for an update for bot :(</pre>',
-                                 parse_mode='html')
+                remember_user_id_to_reply(message.chat.id, forwarded_message.message_id, len(ADMINS))
 
 
 @bot.message_handler(content_types=['text'], func=lambda message: message.reply_to_message is None)
@@ -718,15 +739,13 @@ def force_reply_to_debug_message(call):
     if has_admin_access(call.message.chat.id):
         chat_id = call.message.chat.id
         calldata = call.data.split()
-        chat_id_to_reply = calldata[1]
+        user_id_to_reply = calldata[1]
         message_id_to_reply = calldata[2]
-        forwarded_message = bot.forward_message(chat_id, chat_id_to_reply, message_id_to_reply,
+        forwarded_message = bot.forward_message(chat_id, user_id_to_reply, message_id_to_reply,
                                                 disable_notification=True)
 
         if forwarded_message.forward_from is None:
-            user_id = chat_id_to_reply
-            bot.send_message(chat_id, '<pre>This message cannot be replied to. Wait for an update for bot :(</pre>',
-                             parse_mode='html')
+            remember_user_id_to_reply(user_id_to_reply, forwarded_message.message_id)
 
         bot.answer_callback_query(call.id)
     else:
