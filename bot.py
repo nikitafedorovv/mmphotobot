@@ -144,7 +144,8 @@ def debug_message_processing(message):
     # Rudimental
 
 
-def show_debug_menu(chat, silently=False):
+def show_debug_menu(message, silently=False):
+    chat = message.chat
     newsletter_button = types.InlineKeyboardButton(text=NEWSLETTER_BUTTON, callback_data=NEWSLETTER_CALLBACK_DATA)
     update_inline_stocks_button = types.InlineKeyboardButton(text=UPDATE_INLINE_STOCKS_BUTTON,
                                                              callback_data=UPDATE_INLINE_STOCKS_CALLBACK_DATA)
@@ -155,6 +156,8 @@ def show_debug_menu(chat, silently=False):
     debug_reply_markup.add(update_inline_stocks_button)
     debug_reply_markup.add(hide_menu_button)
     debug_reply_markup.add(gallery_button)
+
+    bot.delete_message(message.chat.id, message.message_id)
 
     bot.send_message(chat.id, '<pre>GREETINGS, %s</pre>' % how_to_call_this_user(chat).upper(),
                      parse_mode='html', reply_markup=debug_reply_markup, disable_notification=silently)
@@ -168,7 +171,7 @@ def handle_free_text(message):
 
     if has_creator_access(message.chat.id):
         if text == '/':
-            show_debug_menu(message.chat)
+            show_debug_menu(message, True)
             return
     if validate_blackout(text) or text == '1.0':
         cache.set_blackout(chat_id, float(text))
@@ -340,6 +343,8 @@ def build_and_send_image(message):
     file_id = cache.get_image(chat_id)
     background_image = get_image_from_file_id(file_id)
 
+    if message.photo is not None or validate_blackout(message.text) or validate_blur(message.text):
+        bot.delete_message(chat_id, message.message_id)
     wait_for_an_image_message = bot.send_message(chat_id, WAIT_FOR_AN_IMAGE_MESSAGE_TEXT,
                                                  reply_markup=types.ReplyKeyboardRemove(), disable_notification=True)
 
@@ -706,7 +711,7 @@ def false_alarm(call):
         message_id = message.message_id
         bot.answer_callback_query(call.id)
         bot.delete_message(chat_id, message_id)
-        show_debug_menu(call.message.chat, silently=True)
+        show_debug_menu(call.message, silently=True)
         cache.set_state(chat_id, ChatState.FREE)
     else:
         bot.answer_callback_query(call.id)
