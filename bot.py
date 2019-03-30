@@ -149,8 +149,7 @@ def debug_message_processing(message):
     # Rudimental
 
 
-def show_debug_menu(message, silently=False):
-    chat = message.chat
+def show_debug_menu(chat):
     newsletter_button = types.InlineKeyboardButton(text=NEWSLETTER_BUTTON, callback_data=NEWSLETTER_CALLBACK_DATA)
     update_inline_stocks_button = types.InlineKeyboardButton(text=UPDATE_INLINE_STOCKS_BUTTON,
                                                              callback_data=UPDATE_INLINE_STOCKS_CALLBACK_DATA)
@@ -162,10 +161,8 @@ def show_debug_menu(message, silently=False):
     debug_reply_markup.add(hide_menu_button)
     debug_reply_markup.add(gallery_button)
 
-    bot.delete_message(message.chat.id, message.message_id)
-
     bot.send_message(chat.id, '<pre>GREETINGS, %s</pre>' % how_to_call_this_user(chat).upper(),
-                     parse_mode='html', reply_markup=debug_reply_markup, disable_notification=silently)
+                     parse_mode='html', reply_markup=debug_reply_markup, disable_notification=True)
 
     return
 
@@ -176,7 +173,8 @@ def handle_free_text(message):
 
     if has_creator_access(message.chat.id):
         if text == '/':
-            show_debug_menu(message, True)
+            bot.delete_message(message.chat.id, message.message_id)
+            show_debug_menu(message.chat)
             return
     if validate_blackout(text) or text == '1.0':
         cache.set_blackout(chat_id, float(text))
@@ -185,6 +183,7 @@ def handle_free_text(message):
         cache.set_blur(chat_id, int(text))
         build_and_send_image(message)
     else:
+        cache.set_message_id_to_reply(chat_id, message.message_id)
         cache.set_heading(chat_id, clear_text(message.text))
         build_and_send_image(message)
 
@@ -312,19 +311,21 @@ def build_image(heading, blackout, blur, background_image):
     return gen_image(heading, background_image, blackout, blur)
 
 
-def send_photo_debug_info(chat, built_image, timestamp, message_id=None,
-                          file_id=None):  # TODO: Proper reply etc
+def send_photo_debug_info(chat, built_image, timestamp, file_id=None):  # TODO: Proper reply etc
     chat_id = chat.id
+    message_id_to_reply = cache.get_message_id_to_reply(chat_id)
 
     if not has_creator_access(chat_id):
         reply_button = types.InlineKeyboardButton(text=REPLY_BUTTON,
-                                                  callback_data='%s %s %s' % (REPLY_CALLBACK_DATA, chat_id, message_id))
+                                                  callback_data='%s %s %s' % (
+                                                      REPLY_CALLBACK_DATA, chat_id, message_id_to_reply))
         background_photo_button = types.InlineKeyboardButton(text=BACKGROUND_PHOTO_BUTTON,
                                                              callback_data='%s%s' % (
                                                                  BACKGROUND_PHOTO_CALLBACK_DATA, file_id))
         reply_or_save_reply_markup = types.InlineKeyboardMarkup()
         reply_or_save_reply_markup.add(reply_button)
         reply_or_save_reply_markup.add(background_photo_button)
+        reply_or_save_reply_markup.add(delete_button)
 
         caption = "<pre>PHOTO BY </pre>%s<pre>\n%s</pre>" % (
             html_inline_link_to_user(chat),
@@ -364,7 +365,7 @@ def build_and_send_image(message):
                    disable_notification=True)
     bot.delete_message(chat_id, wait_for_an_image_message.message_id)
 
-    send_photo_debug_info(message.chat, built_image, message.date, file_id=file_id, message_id=message.message_id)
+    send_photo_debug_info(message.chat, built_image, message.date, file_id=file_id)
 
 
 @bot.message_handler(commands=['start'])
@@ -716,7 +717,7 @@ def false_alarm(call):
         message_id = message.message_id
         bot.answer_callback_query(call.id)
         bot.delete_message(chat_id, message_id)
-        show_debug_menu(call.message, silently=True)
+        show_debug_menu(call.message.chat)
         cache.set_state(chat_id, ChatState.FREE)
     else:
         bot.answer_callback_query(call.id)
@@ -756,7 +757,7 @@ def force_reply_to_debug_message(call):
                                                 disable_notification=True)
 
         if forwarded_message.forward_from is None:
-            remember_user_id_to_reply(user_id_to_reply, forwarded_message.message_id)
+            remember_user_id_to_reply(user_id_to_reply, forwarded_message.message_id, len(ADMINS))
 
         bot.answer_callback_query(call.id)
     else:

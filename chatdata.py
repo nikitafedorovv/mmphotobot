@@ -32,6 +32,7 @@ class ChatData:
     cached_message = None
     state = ChatState.FREE
     image = default_image
+    message_id_to_reply = 0
 
     def __init__(self, chat_id):
         self.chat_id = chat_id
@@ -74,6 +75,10 @@ class ChatCache:
         self.get_chat_data_from_cache(chat_id).image = value
         pass
 
+    def set_message_id_to_reply(self, chat_id, value):
+        self.get_chat_data_from_cache(chat_id).message_id_to_reply = value
+        pass
+
     def get_heading(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).heading
 
@@ -91,6 +96,9 @@ class ChatCache:
 
     def get_image(self, chat_id):
         return self.get_chat_data_from_cache(chat_id).image
+
+    def get_message_id_to_reply(self, chat_id):
+        return self.get_chat_data_from_cache(chat_id).message_id_to_reply
 
     def heading_set(self, chat_id):
         chat_data = self.get_chat_data_from_cache(chat_id)
