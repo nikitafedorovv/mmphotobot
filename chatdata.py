@@ -32,7 +32,7 @@ class ChatData:
     cached_message = None
     state = ChatState.FREE
     image = default_image
-    message_id_to_reply = 0
+    message_id_to_reply = None
 
     def __init__(self, chat_id):
         self.chat_id = chat_id

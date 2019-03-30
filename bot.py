@@ -311,21 +311,24 @@ def build_image(heading, blackout, blur, background_image):
     return gen_image(heading, background_image, blackout, blur)
 
 
-def send_photo_debug_info(chat, built_image, timestamp, file_id=None):  # TODO: Proper reply etc
+def send_photo_debug_info(chat, built_image, timestamp, file_id=None):
     chat_id = chat.id
     message_id_to_reply = cache.get_message_id_to_reply(chat_id)
 
     if not has_creator_access(chat_id):
-        reply_button = types.InlineKeyboardButton(text=REPLY_BUTTON,
-                                                  callback_data='%s %s %s' % (
-                                                      REPLY_CALLBACK_DATA, chat_id, message_id_to_reply))
+        debug_photo_reply_markup = types.InlineKeyboardMarkup()
+
+        if message_id_to_reply is not None:
+            reply_button = types.InlineKeyboardButton(text=REPLY_BUTTON,
+                                                      callback_data='%s %s %s' % (
+                                                          REPLY_CALLBACK_DATA, chat_id, message_id_to_reply))
+            debug_photo_reply_markup.add(reply_button)
+
         background_photo_button = types.InlineKeyboardButton(text=BACKGROUND_PHOTO_BUTTON,
                                                              callback_data='%s%s' % (
                                                                  BACKGROUND_PHOTO_CALLBACK_DATA, file_id))
-        reply_or_save_reply_markup = types.InlineKeyboardMarkup()
-        reply_or_save_reply_markup.add(reply_button)
-        reply_or_save_reply_markup.add(background_photo_button)
-        reply_or_save_reply_markup.add(delete_button)
+        debug_photo_reply_markup.add(background_photo_button)
+        debug_photo_reply_markup.add(delete_button)
 
         caption = "<pre>PHOTO BY </pre>%s<pre>\n%s</pre>" % (
             html_inline_link_to_user(chat),
@@ -336,7 +339,7 @@ def send_photo_debug_info(chat, built_image, timestamp, file_id=None):  # TODO: 
                                image_to_file(built_image, SENT_IMAGE_FILE_NAME),
                                caption=caption,
                                parse_mode='html',
-                               reply_markup=reply_or_save_reply_markup)
+                               reply_markup=debug_photo_reply_markup)
 
 
 def build_and_send_image(message):
