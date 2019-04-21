@@ -12,6 +12,7 @@ ADMINS = os.environ.get('PHOTOBOT_ADMINS').split(',')
 if ADMINS[0] == '':
     ADMINS = []
 ADMINS = CREATORS + ADMINS
+CACHE_CHANNEL_ID = os.environ.get('CACHE_CHANNEL_ID')
 PROD = os.environ.get('PROD')
 WEBHOOK_HOST = os.environ.get('HOST_IP')
 

@@ -74,36 +74,23 @@ class WebhookServer(object):
             raise cherrypy.HTTPError(403)
 
 
-stock_photo_ids = []
+inline_stock_images = []
 
 
-def load_stock_images_file_ids():
-    stock_images_file = open(PROJECT_DIRECTORY + '/' + IMAGES_DIRECTORY + STOCK_IMAGES_FILEIDS_FILE_NAME, 'r')
-    global stock_photo_ids
-    for photo_id_with_line in stock_images_file.readlines():
-        stock_photo_ids.append(photo_id_with_line[:-1])
-    stock_images_file.close()
-
-
-load_stock_images_file_ids()
-
-
-def update_stock_images_file():
-    stock_images_file = open(PROJECT_DIRECTORY + '/' + IMAGES_DIRECTORY + STOCK_IMAGES_FILEIDS_FILE_NAME, 'w')
-
+def update_stock_images():
+    global inline_stock_images
+    id = 1
     for d, dirs, files in os.walk(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY):
         for f in files:
             image = Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + f).convert('RGB')
-            message_with_image = bot.send_photo(ADMINS[0], image_to_file(image, SENT_IMAGE_FILE_NAME))
+            message_with_image = bot.send_photo(CACHE_CHANNEL_ID, image_to_file(image, SENT_IMAGE_FILE_NAME))
             file_id = message_with_image.photo[-1].file_id
-            stock_images_file.write('%s%s' % (file_id, '\n'))
-            bot.delete_message(ADMINS[0], message_with_image.message_id)
-
-    stock_images_file.close()
-    load_stock_images_file_ids()
+            inline_stock_images.append(types.InlineQueryResultCachedPhoto(str(id), file_id, parse_mode='html'))
+            bot.delete_message(CACHE_CHANNEL_ID, message_with_image.message_id)
+            id += 1
 
 
-# update_stock_images_file()
+update_stock_images()
 
 
 def has_admin_access(user):
@@ -151,13 +138,10 @@ def debug_message_processing(message):
 
 def show_debug_menu(chat):
     newsletter_button = types.InlineKeyboardButton(text=NEWSLETTER_BUTTON, callback_data=NEWSLETTER_CALLBACK_DATA)
-    update_inline_stocks_button = types.InlineKeyboardButton(text=UPDATE_INLINE_STOCKS_BUTTON,
-                                                             callback_data=UPDATE_INLINE_STOCKS_CALLBACK_DATA)
     hide_menu_button = types.InlineKeyboardButton(text=HIDE_MENU_BUTTON, callback_data=HIDE_MENU_CALLBACK_DATA)
 
     debug_reply_markup = types.InlineKeyboardMarkup()
     debug_reply_markup.add(newsletter_button)
-    debug_reply_markup.add(update_inline_stocks_button)
     debug_reply_markup.add(hide_menu_button)
     debug_reply_markup.add(gallery_button)
 
@@ -525,33 +509,17 @@ def handle_photo(message):
     build_and_send_image(message)
 
 
-inline_query_results = []
-
-
-def update_inline_query_results():
-    global inline_query_results
-    id = 1
-    for file_id in stock_photo_ids:
-        inline_query_results.append(types.InlineQueryResultCachedPhoto(str(id), file_id, parse_mode='html'))
-        # url = 'https://www.iea.org/media/news/2017/171113WEO2017MainImage.jpg'
-        # inline_query_results.append(types.InlineQueryResultPhoto(str(id), url, url))
-        id += 1
-
-
-update_inline_query_results()
-
-
 @bot.inline_handler(lambda query: query.query.startswith(
-    GALLERY_TAG) or query.query + '\n' == GALLERY_TAG)  # lambda query: query.query == 'text'
+    GALLERY_TAG) or query.query + '\n' == GALLERY_TAG)
 def query_text(inline_query):
-    global inline_query_results
+    global inline_stock_images
     try:
         if len(inline_query.query) > len(GALLERY_TAG):
             text = inline_query.query[len(GALLERY_TAG):]
             cache.set_heading(inline_query.from_user.id, clear_text(text))
-        bot.answer_inline_query(inline_query.id, inline_query_results)
+        bot.answer_inline_query(inline_query.id, inline_stock_images)
     except Exception as e:
-        print(e)
+        handle_exception(e)
 
 
 def as_file_reply_markup(file_id):
@@ -737,19 +705,6 @@ def hide_menu(call):
         cache.set_state(call.message.chat.id, ChatState.FREE)
         bot.answer_callback_query(call.id)
         bot.delete_message(call.message.chat.id, call.message.message_id)
-    else:
-        bot.answer_callback_query(call.id)
-
-
-@bot.callback_query_handler(lambda call: call.data.startswith(UPDATE_INLINE_STOCKS_CALLBACK_DATA))
-def update_inline_stocks(call):
-    if has_creator_access(call.message.chat.id):
-        bot.answer_callback_query(call.id)
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-        update_stock_images_file()
-        bot.send_message(call.message.chat.id, "<pre>STOCKS SUCCESSFULLY UPDATED. "
-                                               "NOW REBOOT THE BOT FOR CHANGES TO BE APPLIED</pre>", parse_mode='html',
-                         reply_markup=delete_button_reply_markup)
     else:
         bot.answer_callback_query(call.id)
 
