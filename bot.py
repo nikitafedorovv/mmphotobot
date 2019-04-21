@@ -401,6 +401,33 @@ def remember_user_id_to_reply(user_id, message_id, cash_size):
     reply_to_library[message_id] = user_id
 
 
+def send_custom_message(message, chat_id):
+    if message.content_type == "text":
+        bot.send_message(chat_id, message.text, parse_mode='markdown', reply_markup=types.ForceReply())
+    elif message.content_type == "audio":
+        bot.send_audio(chat_id, message.audio.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "document":
+        bot.send_document(chat_id, message.document.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "photo":
+        bot.send_photo(chat_id, message.photo[-1].file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "sticker":
+        bot.send_sticker(chat_id, message.sticker.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "video":
+        bot.send_video(chat_id, message.video.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "video_note":
+        bot.send_video_note(chat_id, message.video_note.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "voice":
+        bot.send_voice(chat_id, message.voice.file_id, reply_markup=types.ForceReply())
+    elif message.content_type == "location":
+        try:
+            live_period = message.location.live_period
+        except Exception as e:
+            live_period = None
+        bot.send_location(chat_id, latitude=message.location.latitude,
+                          longitude=message.location.longitude,
+                          live_period=live_period, reply_markup=types.ForceReply())
+
+
 @bot.message_handler(
     content_types=["text",
                    "audio",
@@ -441,31 +468,9 @@ def reply_to_debug_message(message):
             bot.send_message(admin_id, "<pre>ANSWER FROM %s</pre> %s. <pre>MESSAGE:</pre>" % (
                 role, html_inline_link_to_user(message.chat)),
                              parse_mode='html')
+            send_custom_message(message, admin_id)
 
-    if message.content_type == "text":
-        bot.send_message(user_id_to_reply, message.text, parse_mode='markdown', reply_markup=types.ForceReply())
-    elif message.content_type == "audio":
-        bot.send_audio(user_id_to_reply, message.audio.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "document":
-        bot.send_document(user_id_to_reply, message.document.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "photo":
-        bot.send_photo(user_id_to_reply, message.photo[-1].file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "sticker":
-        bot.send_sticker(user_id_to_reply, message.sticker.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "video":
-        bot.send_video(user_id_to_reply, message.video.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "video_note":
-        bot.send_video_note(user_id_to_reply, message.video_note.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "voice":
-        bot.send_voice(user_id_to_reply, message.voice.file_id, reply_markup=types.ForceReply())
-    elif message.content_type == "location":
-        try:
-            live_period = message.location.live_period
-        except Exception as e:
-            live_period = None
-        bot.send_location(user_id_to_reply, latitude=message.location.latitude,
-                          longitude=message.location.longitude,
-                          live_period=live_period, reply_markup=types.ForceReply())
+    send_custom_message(message, user_id_to_reply)
 
     bot.send_message(message.chat.id, '<pre>SENT TO %s</pre>'
                      % how_to_call_this_user(bot.get_chat(user_id_to_reply)), parse_mode='html',
