@@ -16,6 +16,8 @@ CACHE_CHANNEL_ID = os.environ.get('CACHE_CHANNEL_ID')
 PROD = os.environ.get('PROD')
 WEBHOOK_HOST = os.environ.get('HOST_IP')
 
+PROXY = os.environ.get('PROXY')
+
 WEBHOOK_PORT = 8443  # 443, 80, 88 or 8443
 PORT_TO_LISTEN = 80
 HOST_TO_LISTEN = '127.0.0.1'

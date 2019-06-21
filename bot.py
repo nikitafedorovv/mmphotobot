@@ -9,6 +9,7 @@ import cherrypy
 import requests
 import telebot
 from PIL import Image
+from telebot import apihelper
 from telebot import types
 
 from bot_elements_config import *
@@ -33,6 +34,12 @@ reply_to_library = dict()
 # Start the bot.
 bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
+if PROXY is not None:
+    apihelper.proxy = {
+        'http': PROXY,
+        'https': PROXY
+    }
+
 gallery_button = types.InlineKeyboardButton(text=GO_TO_INLINE_BUTTON, switch_inline_query_current_chat=GALLERY_TAG)
 
 go_to_library_reply_markup = types.InlineKeyboardMarkup()
@@ -43,14 +50,13 @@ delete_button_reply_markup = types.InlineKeyboardMarkup()
 delete_button_reply_markup.add(delete_button)
 
 
-def send_message_to_creators(message):
-    for creator in CREATORS:
-        bot.send_message(creator, message,
-                         parse_mode='html', reply_markup=delete_button_reply_markup)
+def send_message_to_creator(message):
+    creator = CREATORS[0]
+    return bot.send_message(creator, message, parse_mode='html', reply_markup=delete_button_reply_markup)
 
 
 def handle_exception(exception):
-    send_message_to_creators("<pre>%s</pre>\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
+    send_message_to_creator("<pre>%s</pre>\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
 
 
 # WebhookServer, process webhook calls.
@@ -78,6 +84,7 @@ inline_stock_images = []
 
 
 def update_stock_images():
+    log_message = send_message_to_creator('<pre>LOADING STOCKS...</pre>')
     global inline_stock_images
     id = 1
     for d, dirs, files in os.walk(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY):
@@ -90,8 +97,8 @@ def update_stock_images():
                 bot.delete_message(CACHE_CHANNEL_ID, message_with_image.message_id)
                 id += 1
 
-
-update_stock_images()
+    bot.delete_message(log_message.chat.id, log_message.message_id)
+    send_message_to_creator('<pre>STOCKS LOADED</pre>')
 
 
 def has_admin_access(user):
@@ -131,9 +138,9 @@ def debug_message_processing(message):
 
     # Rudimental
     if not has_admin_access(chat_id):
-        send_message_to_creators("<pre>MESSAGE FROM </pre>%s\n\n%s" % (html_inline_link_to_user(message.chat),
-                                                                       safe_cast(message.text, str,
-                                                                                 '`/empty_message_text/`')))
+        send_message_to_creator("<pre>MESSAGE FROM </pre>%s\n\n%s" % (html_inline_link_to_user(message.chat),
+                                                                      safe_cast(message.text, str,
+                                                                                '`/empty_message_text/`')))
     # Rudimental
 
 
@@ -744,7 +751,9 @@ def save_photo(call):
 
 while True:
     try:
-        send_message_to_creators('<pre>I AM UP 🌚</pre>')
+        send_message_to_creator('<pre>I AM UP 🌚</pre>')
+        update_stock_images()
+
         # Remove webhook, it fails sometimes the set if there is a previous webhook
         bot.remove_webhook()
 
@@ -770,5 +779,5 @@ while True:
     except Exception as e:
         handle_exception(e)
     else:
-        send_message_to_creators('<pre>SEE YA 👋</pre>')
+        send_message_to_creator('<pre>SEE YA 👋</pre>')
         break
