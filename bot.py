@@ -82,12 +82,13 @@ def update_stock_images():
     id = 1
     for d, dirs, files in os.walk(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY):
         for f in files:
-            image = Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + f).convert('RGB')
-            message_with_image = bot.send_photo(CACHE_CHANNEL_ID, image_to_file(image, SENT_IMAGE_FILE_NAME))
-            file_id = message_with_image.photo[-1].file_id
-            inline_stock_images.append(types.InlineQueryResultCachedPhoto(str(id), file_id, parse_mode='html'))
-            bot.delete_message(CACHE_CHANNEL_ID, message_with_image.message_id)
-            id += 1
+            if f.endswith('.png'):
+                image = Image.open(PROJECT_DIRECTORY + '/' + STOCK_IMAGES_DIRECTORY + f).convert('RGB')
+                message_with_image = bot.send_photo(CACHE_CHANNEL_ID, image_to_file(image, SENT_IMAGE_FILE_NAME))
+                file_id = message_with_image.photo[-1].file_id
+                inline_stock_images.append(types.InlineQueryResultCachedPhoto(str(id), file_id, parse_mode='html'))
+                bot.delete_message(CACHE_CHANNEL_ID, message_with_image.message_id)
+                id += 1
 
 
 update_stock_images()

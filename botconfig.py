@@ -17,11 +17,11 @@ PROD = os.environ.get('PROD')
 WEBHOOK_HOST = os.environ.get('HOST_IP')
 
 WEBHOOK_PORT = 8443  # 443, 80, 88 or 8443
-PORT_TO_LISTEN = 7771
+PORT_TO_LISTEN = 80
 HOST_TO_LISTEN = '127.0.0.1'
 
-WEBHOOK_SSL_CERT = '/cert/public.pem'
-WEBHOOK_SSL_PRIV = '/cert/private.key'
+WEBHOOK_SSL_CERT = '/certificates/public.pem'
+WEBHOOK_SSL_PRIV = '/certificates/private.key'
 
 # Quick'n'dirty SSL certificate generation:
 #
