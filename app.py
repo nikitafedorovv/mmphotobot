@@ -370,8 +370,8 @@ def confirmed_remove(call):
     image_to_remove = call.data[len(CONFIRMED_REMOVE_FROM_GALLERY_CALLBACK_DATA):]
     can_remove = can_remove_this_image(call.message.chat.id, image_to_remove)
     if can_remove:
-        bot.delete_message(call.message.chat.id, call.message.message_id)
         result = bot_data.remove_image(image_to_remove)
+        bot.delete_message(call.message.chat.id, call.message.message_id)
     elif can_remove is None:
         result = 0
     else:
