@@ -7,7 +7,7 @@ from botconfig import *
 MAIN_FONT_FILE_PATH = PROJECT_DIRECTORY + '/fonts/helios_cond_bold_cyr.otf'
 
 
-def gen_image(heading, image, blackout, blur):
+def generate_image(heading, image, blackout, blur):
     width, height = image.size
     if width * 1.0 / height > 1920.0 / 1080:
         new_height = 1080

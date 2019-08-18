@@ -1,0 +1,60 @@
+version: '3'
+services:
+  db:
+    image: "mongo:4.0.11"
+    container_name: "mongodb_container"
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    #      - MONGODB_USER="user"
+    #      - MONGODB_PASS="pass"
+    volumes:
+      - "~/mmphotobot/db:/data/db"
+    #    env_file:
+    #      - db.env
+    restart: always
+    networks:
+      - db_nw
+    command: mongod --smallfiles --logpath=/dev/null # --quiet
+
+  mmphotobot:
+    #    image: "incarcerous8/mmphotobot:prod"
+    container_name: "mmphotobot_container"
+    build: .
+    #        volumes:
+    #          - .:/var/www:rw
+    #          - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    #          - .:/src
+    #        ports:
+    #          - 3000:3000
+    #          - 9000:9000
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MONGO_URL=mongodb://db:27017/
+    env_file:
+      - bot.env
+    restart: always
+    networks:
+      - db_nw
+    #      - web_nw
+    depends_on:
+      - db
+#  nginx:
+#    image: "nginx:1.13.5"
+#    ports:
+#      - "8443:8443"
+#    restart: always
+#    volumes:
+#      - .:/src
+#      - ./conf.d:/etc/nginx/conf.d
+#    env_file:
+#      - env_file
+#    networks:
+#      - web_nw
+#    depends_on:
+#      - mmphotobot
+networks:
+  db_nw:
+    driver: bridge
+#  web_nw:
+#    driver: bridge

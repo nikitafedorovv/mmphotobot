@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import random
 from datetime import datetime
-import pytz
 from io import BytesIO
-from botconfig import TIMEZONE
 
-from botspeech import DOLORES_EMOJIS
+import pytz
+
+from botconfig import TIMEZONE
 
 
 def image_to_file(image, name):
@@ -15,11 +14,6 @@ def image_to_file(image, name):
     image.save(bio, 'JPEG')
     bio.seek(0)
     return bio
-
-
-def get_dolores_emoji():
-    r = random.randint(0, len(DOLORES_EMOJIS) - 1)
-    return DOLORES_EMOJIS[r]
 
 
 def clear_text(text):

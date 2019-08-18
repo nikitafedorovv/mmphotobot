@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.7
+FROM python:3.7-slim
 
 # Set the working directory to /app
 WORKDIR /app
@@ -19,4 +19,4 @@ EXPOSE 80
 #ENV ENV_NAME env_value
 
 # Run bot.py when the container launches
-CMD ["python", "bot.py"]
+CMD ["python", "app.py"]

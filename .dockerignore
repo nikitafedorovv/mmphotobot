@@ -1,0 +1,7 @@
+# ignore .git and .cache folders
+.git
+.cache
+*.md
+.gitignore
+__pycache__
+venv
