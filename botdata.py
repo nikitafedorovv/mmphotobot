@@ -13,8 +13,7 @@ def get_new_chat(new_chat_id):
         'blur': DEFAULT_BLUR,
         'cached_message': None,
         'state': str(ChatState.FREE),
-        'image': None,
-        'message_id_to_reply': None
+        'image': None
     }
 
 
@@ -134,12 +133,6 @@ class BotData:
         self.__mongodb["chats"].save(chat)
         pass
 
-    def set_message_id_to_reply(self, chat_id, value):
-        chat = self.__get_chat_data(chat_id)
-        chat['message_id_to_reply'] = value
-        self.__mongodb["chats"].save(chat)
-        pass
-
     def get_heading(self, chat_id):
         return self.__get_chat_data(chat_id)['heading']
 
@@ -159,9 +152,6 @@ class BotData:
 
     def get_image(self, chat_id):
         return self.__get_chat_data(chat_id)['image']
-
-    def get_message_id_to_reply(self, chat_id):
-        return self.__get_chat_data(chat_id)['message_id_to_reply']
 
     def heading_set(self, chat_id):
         chat_data = self.__get_chat_data(chat_id)
