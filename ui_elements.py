@@ -31,27 +31,30 @@ def get_delete_button_reply_markup():
 
 
 def get_as_file_reply_markup(file_id, image_from_library_id, is_owner, image_exists):
-    as_file_button = types.InlineKeyboardButton(text=GET_AS_FILE_BUTTON,
-                                                callback_data='%s%s' % (GET_AS_FILE_CALLBACK_DATA, file_id))
-    as_file_reply_markup = types.InlineKeyboardMarkup()
-    as_file_reply_markup.add(as_file_button)
-    if is_owner and image_exists:
-        as_file_reply_markup.add(remove_from_gallery_button(image_from_library_id))
-    as_file_reply_markup.add(get_gallery_button())
-
-    return as_file_reply_markup
+    return get_as_something_reply_markup(file_id, image_from_library_id, is_owner, image_exists, "file")
 
 
 def get_as_photo_reply_markup(file_id, image_from_library_id, is_owner, image_exists):
-    as_photo_button = types.InlineKeyboardButton(text=GET_AS_PHOTO_BUTTON,
-                                                 callback_data='%s%s' % (GET_AS_PHOTO_CALLBACK_DATA, file_id))
-    as_photo_reply_markup = types.InlineKeyboardMarkup()
-    as_photo_reply_markup.add(as_photo_button)
-    if is_owner and image_exists:
-        as_photo_reply_markup.add(remove_from_gallery_button(image_from_library_id))
-    as_photo_reply_markup.add(get_gallery_button())
+    return get_as_something_reply_markup(file_id, image_from_library_id, is_owner, image_exists, "photo")
 
-    return as_photo_reply_markup
+
+def get_as_something_reply_markup(file_id, image_from_library_id, is_owner, image_exists, something):
+    as_something_button = None
+    if something == "file":
+        as_something_button = types.InlineKeyboardButton(text=GET_AS_FILE_BUTTON,
+                                                         callback_data='%s%s' % (GET_AS_FILE_CALLBACK_DATA, file_id))
+    elif something == "photo":
+        as_something_button = types.InlineKeyboardButton(text=GET_AS_PHOTO_BUTTON,
+                                                         callback_data='%s%s' % (GET_AS_PHOTO_CALLBACK_DATA, file_id))
+    as_file_reply_markup = types.InlineKeyboardMarkup()
+
+    if is_owner and image_exists:
+        as_file_reply_markup.row(as_something_button, remove_from_gallery_button(image_from_library_id),
+                                 get_gallery_button())
+    else:
+        as_file_reply_markup.row(as_something_button, get_gallery_button())
+
+    return as_file_reply_markup
 
 
 def get_confirm_removing_reply_markup(image_to_remove_id):
