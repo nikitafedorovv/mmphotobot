@@ -46,15 +46,15 @@ def get_as_something_reply_markup(file_id, image_from_library_id, is_owner, imag
     elif something == "photo":
         as_something_button = types.InlineKeyboardButton(text=GET_AS_PHOTO_BUTTON,
                                                          callback_data='%s%s' % (GET_AS_PHOTO_CALLBACK_DATA, file_id))
-    as_file_reply_markup = types.InlineKeyboardMarkup()
+    as_smthng_reply_markup = types.InlineKeyboardMarkup()
 
     if is_owner and image_exists:
-        as_file_reply_markup.row(as_something_button, remove_from_gallery_button(image_from_library_id),
-                                 get_gallery_button())
+        as_smthng_reply_markup.row(as_something_button, remove_from_gallery_button(image_from_library_id),
+                                   get_gallery_button())
     else:
-        as_file_reply_markup.row(as_something_button, get_gallery_button())
+        as_smthng_reply_markup.row(as_something_button, get_gallery_button())
 
-    return as_file_reply_markup
+    return as_smthng_reply_markup
 
 
 def get_confirm_removing_reply_markup(image_to_remove_id):
