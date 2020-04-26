@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import re
 
 import requests
@@ -460,10 +461,10 @@ async def remove_this_message(call):
 if __name__ == '__main__':
     while True:
         try:
-            log('<pre>BOT IS UP</pre>')
+            asyncio.run(log('<pre>BOT IS UP</pre>'))
 
             # Remove webhook, it fails sometimes the set if there is a previous webhook
-            tbot.delete_webhook()
+            asyncio.run(tbot.delete_webhook())
 
             # if PROD == 'TRUE':
             #
@@ -487,7 +488,7 @@ if __name__ == '__main__':
             executor.start_polling(dp, skip_updates=False)
 
         except Exception as e:
-            handle_exception(e)
+            asyncio.run(handle_exception(e))
         else:
-            log('<pre>SEE YA</pre>')
+            asyncio.run(log('<pre>SEE YA</pre>'))
             break
