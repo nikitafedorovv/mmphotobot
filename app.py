@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-import asyncio
 import re
 
 import requests
 from PIL import Image
 from aiogram import Bot, Dispatcher, executor
 from aiogram.dispatcher.filters import *
-from aiogram.types import ContentTypes
+from aiogram.types import *
 from aiogram.utils.exceptions import *
 
 from botconfig import *
@@ -321,14 +320,13 @@ async def handle_photo(message):
     await build_and_send_image(message)
 
 
-def make_inline_query_result_from_images_info(images_info):
+async def make_inline_query_result_from_images_info(images_info):
     res = []
     idd = 0
     for image_info in images_info:
         res.append(
             (types.InlineQueryResultCachedPhoto(id=str(idd),
-                                                photo_file_id=bot_data.get_reuse_id(image_info['image_id']),
-                                                parse_mode='html')))
+                                                photo_file_id=bot_data.get_reuse_id(image_info['image_id']))))
         idd += 1
 
     return res
@@ -341,7 +339,7 @@ async def gallery_query(inline_query):
     else:
         offset = int(inline_query.offset)
     images_info = bot_data.get_images_sorted_by_rating()
-    inline_stock_images = make_inline_query_result_from_images_info(images_info)
+    inline_stock_images = await make_inline_query_result_from_images_info(images_info)
     next_offset = offset + 1
 
     if next_offset * 50 < len(inline_stock_images):
@@ -459,36 +457,4 @@ async def remove_this_message(call):
 
 
 if __name__ == '__main__':
-    while True:
-        try:
-            asyncio.run(log('<pre>BOT IS UP</pre>'))
-
-            # Remove webhook, it fails sometimes the set if there is a previous webhook
-            asyncio.run(tbot.delete_webhook())
-
-            # if PROD == 'TRUE':
-            #
-            #     # Set webhook
-            #     bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH,
-            #                     certificate=open(WEBHOOK_SSL_CERT, 'r'))
-            #
-            #     time.sleep(1)
-            #
-            #     # Start cherrypy server
-            #     cherrypy.config.update({
-            #         'server.socket_host': HOST_TO_LISTEN,
-            #         'server.socket_port': PORT_TO_LISTEN,
-            #         'engine.autoreload.on': False
-            #     })
-            #
-            #     cherrypy.quickstart(WebhookServer(), '/', {'/': {}})
-            # else:
-            #     bot.polling(none_stop=True)
-
-            executor.start_polling(dp, skip_updates=False)
-
-        except Exception as e:
-            asyncio.run(handle_exception(e))
-        else:
-            asyncio.run(log('<pre>SEE YA</pre>'))
-            break
+    executor.start_polling(dp, skip_updates=False)

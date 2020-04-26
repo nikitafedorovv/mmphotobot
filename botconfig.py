@@ -30,7 +30,7 @@ PROXY = os.environ.get('PROXY')
 SENT_IMAGE_FILE_NAME = 'image.jpg'
 
 DEFAULT_HEADING = 'Specify the heading,\nplease'
-DEFAULT_BLACKOUT = 0.60
+DEFAULT_BLACKOUT = 0.50
 DEFAULT_BLUR = 1
 
 TIMEZONE = 'Europe/Moscow'
