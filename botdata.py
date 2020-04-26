@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import pymongo
-from bson.objectid import ObjectId
 
 from botconfig import *
 from chat_states import ChatState
@@ -33,10 +32,6 @@ class BotData:
         self.__mongodb = pymongo.MongoClient(MONGO_URL)['mmphotobot']
         pass
 
-    def exist(self, object_id):
-        gallery_coll = self.__mongodb["gallery"]
-        return gallery_coll.find_one({"_id": ObjectId(object_id)}) is not None
-
     def __get_image_info_or_create(self, image_id, owner_id):
         gallery_coll = self.__mongodb["gallery"]
         image_info = gallery_coll.find_one({"image_id": str(image_id)})
@@ -55,19 +50,13 @@ class BotData:
     def get_images_sorted_by_rating(self):
         return self.__mongodb["gallery"].find({}).sort([("rating", -1)])
 
-    def get_image_id_by_object_id(self, object_id):
-        return str(self.__mongodb["gallery"].find_one({"_id": ObjectId(object_id)})['image_id'])
-
-    def get_object_id_by_image_id(self, image_id):
-        return str(self.__mongodb["gallery"].find_one({"image_id": str(image_id)})['_id'])
-
-    def remove_image(self, object_id):
-        res = self.__mongodb["gallery"].delete_one({"_id": ObjectId(object_id)}).deleted_count
+    def remove_image(self, image_id):
+        res = self.__mongodb["gallery"].delete_one({"image_id": image_id}).deleted_count
 
         return res
 
-    def is_owner(self, user_id, object_id):
-        image_info = self.__mongodb["gallery"].find_one({"_id": ObjectId(object_id)})
+    def is_owner(self, user_id, image_id):
+        image_info = self.__mongodb["gallery"].find_one({"image_id": str(image_id)})
         if image_info is not None:
             return str(image_info['owner_id']) == str(user_id)
         else:

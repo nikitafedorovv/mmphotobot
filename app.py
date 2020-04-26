@@ -37,11 +37,8 @@ def is_developer(user_id):
     return str(DEVELOPER_ID) == str(user_id)
 
 
-def can_remove_this_image(user_id, object_id):
-    if not bot_data.exist(object_id):
-        return None
-    else:
-        return is_developer(user_id) or bot_data.is_owner(user_id, object_id)
+def can_remove_this_image(user_id, image_id):
+    return is_developer(user_id) or bot_data.is_owner(user_id, image_id)
 
 
 def get_image_from_file_id(file_id):
@@ -116,11 +113,10 @@ def build_and_send_image(message):
                                                  reply_markup=types.ReplyKeyboardRemove(), disable_notification=True)
     bot.delete_message(chat_id, message.message_id)
     built_image = generate_image(heading, background_image, blackout, blur)
-    can_remove = can_remove_this_image(chat_id, bot_data.get_object_id_by_image_id(file_id))
+    can_remove = can_remove_this_image(chat_id, file_id)
     image_exists = bot_data.image_exists(file_id)
     bot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME),
-                   reply_markup=get_as_file_reply_markup(bot_data.get_object_id_by_image_id(file_id), can_remove,
-                                                         image_exists),
+                   reply_markup=get_as_file_reply_markup('', file_id, can_remove, image_exists),
                    disable_notification=True)
     bot.delete_message(chat_id, wait_for_an_image_message.message_id)
 
@@ -356,13 +352,12 @@ def query_text(inline_query):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(REMOVE_FROM_GALLERY_CALLBACK_DATA))
 def remove_image_from_gallery(call):
-    object_id = call.data[len(REMOVE_FROM_GALLERY_CALLBACK_DATA):]
-    can_remove = can_remove_this_image(call.message.chat.id, object_id)
+    image_to_remove = call.data[len(REMOVE_FROM_GALLERY_CALLBACK_DATA):]
+    can_remove = can_remove_this_image(call.message.chat.id, image_to_remove)
 
     if can_remove:
-        image_to_remove = bot_data.get_image_id_by_object_id(object_id)
         bot.send_photo(call.message.chat.id, image_to_remove, ARE_YOU_SURE_TO_DELETE_IMAGE,
-                       reply_markup=get_confirm_removing_reply_markup(object_id))
+                       reply_markup=get_confirm_removing_reply_markup(image_to_remove))
         bot.answer_callback_query(call.id)
     elif can_remove is None:
         bot.answer_callback_query(call.id, text=ALREADY_REMOVED_ANSWER)
@@ -372,10 +367,10 @@ def remove_image_from_gallery(call):
 
 @bot.callback_query_handler(lambda call: call.data.startswith(CONFIRMED_REMOVE_FROM_GALLERY_CALLBACK_DATA))
 def confirmed_remove(call):
-    object_id = call.data[len(CONFIRMED_REMOVE_FROM_GALLERY_CALLBACK_DATA):]
-    can_remove = can_remove_this_image(call.message.chat.id, object_id)
+    image_to_remove = call.data[len(CONFIRMED_REMOVE_FROM_GALLERY_CALLBACK_DATA):]
+    can_remove = can_remove_this_image(call.message.chat.id, image_to_remove)
     if can_remove:
-        result = bot_data.remove_image(object_id)
+        result = bot_data.remove_image(image_to_remove)
         bot.delete_message(call.message.chat.id, call.message.message_id)
     elif can_remove is None:
         result = 0
@@ -395,12 +390,15 @@ def get_as_file_callback(call):
     message = call.message
     chat_id = message.chat.id
     message_id = message.message_id
-    file_id = message.photo[-1].file_id
+    if len(call.data) == len(GET_AS_FILE_CALLBACK_DATA):
+        file_id = message.photo[-1].file_id
+    else:
+        file_id = call.data[len(GET_AS_FILE_CALLBACK_DATA):]
 
     # TODO: IS_OWNER_CALLBACK_DATA
 
     image_from_library_id = bot_data.get_image(chat_id)
-    can_remove = can_remove_this_image(chat_id, bot_data.get_object_id_by_image_id(image_from_library_id))
+    can_remove = can_remove_this_image(chat_id, image_from_library_id)
     image_exists = bot_data.image_exists(image_from_library_id)
 
     try:
@@ -410,10 +408,8 @@ def get_as_file_callback(call):
             f.name = 'image.jpg'
             bot.delete_message(chat_id, message_id)
             bot.send_document(chat_id, f,
-                              reply_markup=get_as_photo_reply_markup(bot_data.get_object_id_by_image_id(
-                                  image_from_library_id),
-                                  can_remove,
-                                  image_exists),
+                              reply_markup=get_as_photo_reply_markup(file_id, image_from_library_id, can_remove,
+                                                                     image_exists),
                               disable_notification=True)
     except telebot.apihelper.ApiException as e:
         True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
@@ -426,27 +422,21 @@ def get_as_photo_callback(call):
     message = call.message
     chat_id = message.chat.id
     message_id = message.message_id
-    file_id = message.document.file_id
+    file_id = call.data[len(GET_AS_PHOTO_CALLBACK_DATA):]
 
     # TODO: IS_OWNER_CALLBACK_DATA
 
     image_from_library_id = bot_data.get_image(chat_id)
-    can_remove = can_remove_this_image(chat_id, bot_data.get_object_id_by_image_id(image_from_library_id))
+    can_remove = can_remove_this_image(chat_id, image_from_library_id)
     image_exists = bot_data.image_exists(image_from_library_id)
 
     try:
-        url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, bot.get_file(file_id).file_path)
-        r = requests.get(url)
-        with BytesIO(r.content) as f:
-            f.name = 'image.jpg'
-            bot.delete_message(chat_id, message_id)
-            bot.send_photo(chat_id, f,
-                           reply_markup=get_as_file_reply_markup(
-                               bot_data.get_object_id_by_image_id(image_from_library_id),
-                               can_remove, image_exists),
-                           disable_notification=True)
+        bot.delete_message(chat_id, message_id)
+        bot.send_photo(chat_id, file_id,
+                       reply_markup=get_as_file_reply_markup(file_id, image_from_library_id, can_remove, image_exists),
+                       disable_notification=True)
     except telebot.apihelper.ApiException as e:
-        handle_exception(e)  # Do nothing. If the button was pressed many times, caption editing will throw an exception
+        True  # Do nothing. If the button was pressed many times, caption editing will throw an exception
 
     bot.answer_callback_query(call.id)
 
