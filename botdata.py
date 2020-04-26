@@ -133,6 +133,17 @@ class BotData:
         self.__mongodb["chats"].save(chat)
         pass
 
+    def remember_reuse_id(self, file_id, file_reuse_id):
+        file_reuse_coll = self.__mongodb["file-reuse-info"]
+        file_reuse_info = file_reuse_coll.find_one({"file_id": str(file_id)})
+        if file_reuse_info is None:
+            file_reuse_coll.save({'file_id': file_id, 'file_reuse_id': file_reuse_id})
+
+    def get_reuse_id(self, file_id):
+        file_reuse_coll = self.__mongodb["file-reuse-info"]
+        file_reuse_info = file_reuse_coll.find_one({"file_id": str(file_id)})
+        return file_reuse_info['file_reuse_id']
+
     def get_heading(self, chat_id):
         return self.__get_chat_data(chat_id)['heading']
 

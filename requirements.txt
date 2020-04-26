@@ -1,8 +1,10 @@
-CherryPy==18.0.1
-enum34==1.1.6
-Pillow==5.3.0
-pyTelegramBotAPI==3.6.7
+CherryPy>=18.6
+enum34>=1.1
+Pillow>=7.1
 pytz
-requests>=2.20.0
-urllib3[socks]
+requests>=2.23
+urllib3[socks]>=1.25.9
 pymongo
+aiogram==2.8
+aiohttp[speedups]
+aiohttp_socks

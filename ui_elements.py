@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from telebot import types
+from aiogram import types
 
 from bot_elements_config import *
 
 
 def get_delete_button():
-    return types.InlineKeyboardButton(text=HIDE_MENU_BUTTON, callback_data=HIDE_MENU_CALLBACK_DATA)
+    return types.InlineKeyboardButton(text=HIDE_MENU_BUTTON, callback_data=REMOVE_CURRENT_MESSAGE_CALLBACK_DATA)
 
 
 def get_gallery_button():
@@ -30,22 +30,22 @@ def get_delete_button_reply_markup():
     return delete_button_reply_markup
 
 
-def get_as_file_reply_markup(file_id, image_from_library_id, is_owner, image_exists):
-    return get_as_something_reply_markup(file_id, image_from_library_id, is_owner, image_exists, "file")
+def get_as_file_reply_markup(image_from_library_id, is_owner, image_exists):
+    return get_as_something_reply_markup(image_from_library_id, is_owner, image_exists, "file")
 
 
-def get_as_photo_reply_markup(file_id, image_from_library_id, is_owner, image_exists):
-    return get_as_something_reply_markup(file_id, image_from_library_id, is_owner, image_exists, "photo")
+def get_as_photo_reply_markup(image_from_library_id, is_owner, image_exists):
+    return get_as_something_reply_markup(image_from_library_id, is_owner, image_exists, "photo")
 
 
-def get_as_something_reply_markup(file_id, image_from_library_id, is_owner, image_exists, something):
+def get_as_something_reply_markup(image_from_library_id, is_owner, image_exists, something):
     as_something_button = None
     if something == "file":
         as_something_button = types.InlineKeyboardButton(text=GET_AS_FILE_BUTTON,
-                                                         callback_data='%s%s' % (GET_AS_FILE_CALLBACK_DATA, file_id))
+                                                         callback_data=GET_AS_FILE_CALLBACK_DATA)
     elif something == "photo":
         as_something_button = types.InlineKeyboardButton(text=GET_AS_PHOTO_BUTTON,
-                                                         callback_data='%s%s' % (GET_AS_PHOTO_CALLBACK_DATA, file_id))
+                                                         callback_data=GET_AS_PHOTO_CALLBACK_DATA)
     as_smthng_reply_markup = types.InlineKeyboardMarkup()
 
     if is_owner and image_exists:
@@ -61,7 +61,8 @@ def get_confirm_removing_reply_markup(image_to_remove_id):
     yes_button = types.InlineKeyboardButton(text=YES_REMOVE_BUTTON_TEXT,
                                             callback_data='%s%s' % (
                                                 CONFIRMED_REMOVE_FROM_GALLERY_CALLBACK_DATA, image_to_remove_id))
-    cancel_button = types.InlineKeyboardButton(text=CANCEL_REMOVING_BUTTON_TEXT, callback_data=HIDE_MENU_CALLBACK_DATA)
+    cancel_button = types.InlineKeyboardButton(text=CANCEL_REMOVING_BUTTON_TEXT,
+                                               callback_data=REMOVE_CURRENT_MESSAGE_CALLBACK_DATA)
     res = types.InlineKeyboardMarkup()
     res.add(yes_button)
     res.add(cancel_button)
