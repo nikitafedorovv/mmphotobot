@@ -415,7 +415,7 @@ async def get_as_file_callback(call):
                                      reply_markup=get_as_photo_reply_markup(image_from_library_id, can_remove,
                                                                             image_exists),
                                      disable_notification=True)
-    except MessageToDeleteNotFound as e:
+    except MessageToDeleteNotFound:
         True  # Do nothing. If the button was pressed many times, message removing will throw an exception
 
     await tbot.answer_callback_query(call.id)
@@ -443,7 +443,7 @@ async def get_as_photo_callback(call):
                                                                         image_exists),
                                   disable_notification=True)
 
-    except MessageToDeleteNotFound as e:
+    except MessageToDeleteNotFound:
         True  # Do nothing. If the button was pressed many times, message removing will throw an exception
 
     await tbot.answer_callback_query(call.id)

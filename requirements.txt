@@ -2,8 +2,6 @@ enum34>=1.1
 Pillow>=7.1
 pytz
 requests>=2.23
-urllib3[socks]>=1.25.9
 pymongo
 aiogram==2.8
 aiohttp[speedups]
-aiohttp_socks
