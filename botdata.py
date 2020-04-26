@@ -55,6 +55,9 @@ class BotData:
 
         return res
 
+    def remove_with_this_rating_and_lower(self, rating):
+        self.__mongodb["gallery"].delete_many({'rating': {'$lte': rating}})
+
     def is_owner(self, user_id, image_id):
         image_info = self.__mongodb["gallery"].find_one({"image_id": str(image_id)})
         if image_info is not None:

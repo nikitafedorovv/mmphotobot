@@ -5,3 +5,4 @@ requests>=2.23
 pymongo
 aiogram==2.8
 aiohttp[speedups]
+bcrypt==3.1.7

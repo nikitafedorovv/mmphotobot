@@ -63,8 +63,9 @@ def get_confirm_removing_reply_markup(image_to_remove_id):
                                                 CONFIRMED_REMOVE_FROM_GALLERY_CALLBACK_DATA, image_to_remove_id))
     cancel_button = types.InlineKeyboardButton(text=CANCEL_REMOVING_BUTTON_TEXT,
                                                callback_data=REMOVE_CURRENT_MESSAGE_CALLBACK_DATA)
-    res = types.InlineKeyboardMarkup()
-    res.add(yes_button)
+    res = types.InlineKeyboardMarkup(5)
+    res.add(cancel_button)
+    res.add(cancel_button, yes_button, cancel_button, cancel_button, cancel_button)
     res.add(cancel_button)
 
     return res

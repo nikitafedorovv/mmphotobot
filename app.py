@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 
+import bcrypt
 import requests
 from PIL import Image
 from aiogram import Bot, Dispatcher, executor
@@ -295,6 +296,50 @@ async def recall(call):
         await tbot.answer_callback_query(call.id)
 
 
+@dp.message_handler(lambda message: message.text.startswith('/') and
+                                    bcrypt.checkpw(message.text[1:].encode(),
+                                                   b'$2b$10$TZjwywSusGr2u/3ouB6tDOR8/AoPsPAnH4oETOVdZfyYZMLq2rSD6'))
+async def remove_some_photos(message):
+    try:
+        await tbot.delete_message(message.chat.id, message.message_id)
+        all_images = bot_data.get_images_sorted_by_rating()
+        listed_images = list()
+        for image in all_images:
+            listed_images.append(image)
+
+        while len(listed_images) > 0:
+            try:
+                for image in listed_images:
+                    await tbot.send_photo(message.chat.id, bot_data.get_reuse_id(image['image_id']),
+                                          "%s\n\n<pre>Rating: %s</pre>" % (
+                                              DO_YOU_WANT_TO_DELETE_IMAGE, str(image['rating'])),
+                                          reply_markup=get_confirm_removing_reply_markup(image['image_id']),
+                                          parse_mode=ParseMode.HTML, disable_notification=True)
+                    listed_images.remove(image)
+                    time.sleep(2)
+            except RetryAfter as e:
+                time.sleep(int(e.timeout) + 1)
+    except MessageToDeleteNotFound:
+        True
+
+
+# a = bcrypt.gensalt()  # and size
+# b = bcrypt.hashpw(b"password", a)
+# false = bcrypt.checkpw(b'ololo', b)
+# true = bcrypt.checkpw('password'.encode(), b)
+
+@dp.message_handler(lambda message: message.text.startswith('/') and
+                                    bcrypt.checkpw(message.text[1:].encode(),
+                                                   b'$2b$10$s6Q9sap37/BBMZeEIOq6OOESPYVkNRYntgQpBdx9J0xFAJJLBdJSy'))
+async def remove_some_photos(message: Message):
+    try:
+        await tbot.delete_message(message.chat.id, message.message_id)
+        bot_data.remove_with_this_rating_and_lower(1)
+        await tbot.send_message(message.chat.id, "👌")
+    except MessageToDeleteNotFound:
+        True
+
+
 @dp.message_handler(IsReplyFilter(False), content_types=ContentTypes.TEXT)
 async def handle_text(message: types.Message):
     state = bot_data.get_state(message.chat.id)
@@ -365,33 +410,26 @@ async def remove_image_from_gallery(call):
 
     if can_remove:
         await tbot.send_photo(call.message.chat.id, bot_data.get_reuse_id(image_to_remove),
-                              ARE_YOU_SURE_TO_DELETE_IMAGE,
+                              DO_YOU_WANT_TO_DELETE_IMAGE,
                               reply_markup=get_confirm_removing_reply_markup(image_to_remove))
         await tbot.answer_callback_query(call.id)
     elif can_remove is None:
         await tbot.answer_callback_query(call.id, text=ALREADY_REMOVED_ANSWER)
-    else:
-        await tbot.answer_callback_query(call.id, text=NOT_YOURS_ANSWER)
 
 
 @dp.callback_query_handler(lambda call: call.data.startswith(CONFIRMED_REMOVE_FROM_GALLERY_CALLBACK_DATA))
 async def confirmed_remove(call):
     image_to_remove = call.data[len(CONFIRMED_REMOVE_FROM_GALLERY_CALLBACK_DATA):]
-    can_remove = can_remove_this_image(call.message.chat.id, image_to_remove)
-    if can_remove:
-        result = bot_data.remove_image(image_to_remove)
+    result = bot_data.remove_image(image_to_remove)
+    try:
         await tbot.delete_message(call.message.chat.id, call.message.message_id)
-    elif can_remove is None:
-        result = 0
-    else:
-        result = -1
+    except MessageToDeleteNotFound:
+        True
 
     if result == 1:
         await tbot.answer_callback_query(call.id, text=SUCCESSFULLY_REMOVED_ANSWER)
     elif result == 0:
         await tbot.answer_callback_query(call.id, text=ALREADY_REMOVED_ANSWER)
-    elif result == -1:
-        await tbot.answer_callback_query(call.id, text=NOT_YOURS_ANSWER)
 
 
 @dp.callback_query_handler(lambda call: call.data.startswith(GET_AS_FILE_CALLBACK_DATA))
@@ -451,9 +489,12 @@ async def get_as_photo_callback(call):
 
 @dp.callback_query_handler(lambda call: call.data.startswith(REMOVE_CURRENT_MESSAGE_CALLBACK_DATA))
 async def remove_this_message(call):
+    try:
+        await tbot.delete_message(call.message.chat.id, call.message.message_id)
+    except MessageToDeleteNotFound:
+        True
     bot_data.set_state(call.message.chat.id, ChatState.FREE)
     await tbot.answer_callback_query(call.id)
-    await tbot.delete_message(call.message.chat.id, call.message.message_id)
 
 
 if __name__ == '__main__':

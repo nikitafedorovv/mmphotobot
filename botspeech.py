@@ -8,5 +8,4 @@ START_MESSAGE_TEXT = 'Hello.\n\n— Send a text to set the heading\n— Choose o
 WAIT_FOR_AN_IMAGE_MESSAGE_TEXT = "One moment... ⏳"
 SUCCESSFULLY_REMOVED_ANSWER = '✅ Successfully removed from saved backgrounds'
 ALREADY_REMOVED_ANSWER = 'ℹ️ Seems like it is already removed'
-NOT_YOURS_ANSWER = '❗️ Seems like you do not own this background'
-ARE_YOU_SURE_TO_DELETE_IMAGE = 'Are you sure you want to remove this photo from saved backgrounds?'
+DO_YOU_WANT_TO_DELETE_IMAGE = 'Do you want to remove this photo from saved backgrounds?'
