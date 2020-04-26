@@ -59,8 +59,6 @@ class BotData:
         return str(self.__mongodb["gallery"].find_one({"_id": ObjectId(object_id)})['image_id'])
 
     def get_object_id_by_image_id(self, image_id):
-        if image_id is None:
-            return str(self.__mongodb["gallery"].find_one({})['_id'])
         return str(self.__mongodb["gallery"].find_one({"image_id": str(image_id)})['_id'])
 
     def remove_image(self, object_id):
