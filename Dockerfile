@@ -8,7 +8,11 @@ WORKDIR /app
 COPY . /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc build-essential\
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --trusted-host pypi.python.org -r requirements.txt \
+    && apt-get purge -y --auto-remove gcc build-essential
 
 # Build sertificate
 
