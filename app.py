@@ -82,6 +82,10 @@ def validate_blur(blur):
     return blur.isdigit() and int(blur) > 1
 
 
+def validate_rating(rating):
+    return rating.isdigit() and int(rating) >= 1
+
+
 async def validate_chat_id(chat_id):
     return chat_id.isdigit()
 
@@ -298,7 +302,7 @@ async def recall(call):
 
 @dp.message_handler(lambda message: message.text.startswith('/') and
                                     bcrypt.checkpw(message.text[1:].encode(),
-                                                   b'$2b$10$TZjwywSusGr2u/3ouB6tDOR8/AoPsPAnH4oETOVdZfyYZMLq2rSD6'))
+                                                   b'$2b$10$1He8CnTT./nLWSLyeeAkP.EyWHhIouHVueHbVoywSF/MsUo0hNsyu'))
 async def remove_some_photos(message):
     try:
         await tbot.delete_message(message.chat.id, message.message_id)
@@ -328,14 +332,19 @@ async def remove_some_photos(message):
 # false = bcrypt.checkpw(b'ololo', b)
 # true = bcrypt.checkpw('password'.encode(), b)
 
-@dp.message_handler(lambda message: message.text.startswith('/') and
-                                    bcrypt.checkpw(message.text[1:].encode(),
-                                                   b'$2b$10$s6Q9sap37/BBMZeEIOq6OOESPYVkNRYntgQpBdx9J0xFAJJLBdJSy'))
+@dp.message_handler(lambda message: message.text is not None and
+                                    message.text.startswith('/') and
+                                    len(message.text) > 1 and
+                                    len(message.text[1:].split()) > 1 and
+                                    bcrypt.checkpw(message.text[1:].split()[0].encode(),
+                                                   b'$2b$10$s6Q9sap37/BBMZeEIOq6OOESPYVkNRYntgQpBdx9J0xFAJJLBdJSy') and
+                                    validate_rating(message.text[1:].split()[1]))
 async def remove_some_photos(message: Message):
     try:
         await tbot.delete_message(message.chat.id, message.message_id)
-        bot_data.remove_with_this_rating_and_lower(1)
-        await tbot.send_message(message.chat.id, "👌")
+        rating = message.text[1:].split()[1]
+        bot_data.remove_with_this_rating_and_lower(int(rating))
+        await tbot.send_message(message.chat.id, "Done 👌", reply_markup=get_delete_button_reply_markup())
     except MessageToDeleteNotFound:
         True
 
