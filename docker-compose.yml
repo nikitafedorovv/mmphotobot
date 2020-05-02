@@ -18,9 +18,9 @@ services:
     command: mongod --smallfiles --logpath=/dev/null # --quiet
 
   mmphotobot:
-    #    image: "incarcerous8/mmphotobot:prod"
-    container_name: "mmphotobot_container"
-    build: .
+    #    image: "incarcerous8/mmphotobot:prod"  # For prod environment
+    container_name: "mmphotobot_container"  # For non-prod environment
+    build: . # For non-prod environment
     #        volumes:
     #          - .:/var/www:rw
     #          - /tmp/.X11-unix:/tmp/.X11-unix:rw
