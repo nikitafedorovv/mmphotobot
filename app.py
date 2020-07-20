@@ -159,7 +159,8 @@ async def handle_help(message):
     await log('%s <pre>ASKED FOR HELP</pre>' % await html_inline_link_to_user(message.chat.id))
 
     bot_data.set_state(chat_id, ChatState.FREE)
-    await tbot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=get_go_to_library_reply_markup())
+    await tbot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=get_go_to_library_reply_markup(),
+                            parse_mode='html')
 
 
 async def newsletter_menu(chat):
