@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 START_MESSAGE_TEXT = 'Hello!\n\n— <b>Send</b> me any text to set the heading;' \
-                     '\n— <b>Choose</b> or <b>send</b> a picture to set the background picture' \
-                     ' (you can use your own picture from device or use a cache below);' \
+                     '\n— <b>Choose</b> or <b>send</b> a picture to set the background;' \
                      '\n— <b>Send</b> me a float from 0.0 to 1.0 to set blackout (0.6 usually looks nice);' \
                      '\n— <b>Send</b> me a positive integer number to set blur (recommended values are from 1 to 20).' \
                      '\n\n\n<i>Tip</i>:\nYou can send me your own image from your device to use it as' \
