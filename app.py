@@ -495,7 +495,7 @@ async def remove_this_message(call):
 async def preparations():
     global DUMMY_PHOTO_ID
 
-    dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0.3, 1)
+    dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0, 1)
     dummy_photo_message = await tbot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
                                                 caption='<pre>BOT IS UP</pre>',
                                                 parse_mode='html',
