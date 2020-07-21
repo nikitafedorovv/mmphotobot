@@ -114,10 +114,9 @@ async def build_and_send_image(message):
     background_image = await get_image_from_file_id(file_id) if file_id is not None else Image.new(mode='RGB',
                                                                                                    size=(1920, 1080),
                                                                                                    color=(41, 54, 72))
-
+    await tbot.delete_message(chat_id, message.message_id)
     result_photo_message = await tbot.send_photo(chat_id, DUMMY_PHOTO_ID, reply_markup=get_go_to_library_reply_markup())
 
-    await tbot.delete_message(chat_id, message.message_id)
     built_image = generate_image(heading, background_image, blackout, blur)
     can_remove = can_remove_this_image(chat_id, file_id)
     image_exists = bot_data.image_exists(file_id)
@@ -512,7 +511,7 @@ async def preparations():
 
     dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0.3, 0)
     dummy_photo_message = await tbot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
-                                                caption='<pre>(dummy background cache)</pre>',
+                                                caption='<pre>BOT IS UP</pre>',
                                                 parse_mode='html',
                                                 disable_notification=True)
     dummy_photo_tginfo = dummy_photo_message.photo[-1]
