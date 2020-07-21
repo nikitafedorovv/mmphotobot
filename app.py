@@ -445,25 +445,19 @@ async def confirmed_remove(call):
 async def get_as_file_callback(call):
     message = call.message
     chat_id = message.chat.id
-    message_id = message.message_id
     file_reuse_id = message.photo[-1].file_id
 
     image_from_library_id = bot_data.get_image(chat_id)
     can_remove = can_remove_this_image(chat_id, image_from_library_id)
     image_exists = bot_data.image_exists(image_from_library_id)
 
-    try:
-        url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, (await tbot.get_file(file_reuse_id)).file_path)
-        r = requests.get(url)
-        with BytesIO(r.content) as f:
-            f.name = 'image.jpg'
-            await tbot.delete_message(chat_id, message_id)
-            await tbot.send_document(chat_id, f,
-                                     reply_markup=get_as_photo_reply_markup(image_from_library_id, can_remove,
-                                                                            image_exists),
-                                     disable_notification=True)
-    except MessageToDeleteNotFound:
-        True  # Do nothing. If the button was pressed many times, message removing will throw an exception
+    url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, (await tbot.get_file(file_reuse_id)).file_path)
+    r = requests.get(url)
+    with BytesIO(r.content) as f:
+        f.name = 'image.jpg'
+        await message.edit_media(InputMediaDocument(f),
+                                 reply_markup=get_as_photo_reply_markup(image_from_library_id, can_remove,
+                                                                        image_exists))
 
     await tbot.answer_callback_query(call.id)
 
@@ -472,26 +466,18 @@ async def get_as_file_callback(call):
 async def get_as_photo_callback(call):
     message = call.message
     chat_id = message.chat.id
-    message_id = message.message_id
     file_reuse_id = message.document.file_id
 
     image_from_library_id = bot_data.get_image(chat_id)
     can_remove = can_remove_this_image(chat_id, image_from_library_id)
     image_exists = bot_data.image_exists(image_from_library_id)
 
-    try:
-        url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, (await tbot.get_file(file_reuse_id)).file_path)
-        r = requests.get(url)
-        with BytesIO(r.content) as f:
-            f.name = 'image.jpg'
-            await tbot.delete_message(chat_id, message_id)
-            await tbot.send_photo(chat_id, f,
-                                  reply_markup=get_as_file_reply_markup(image_from_library_id, can_remove,
-                                                                        image_exists),
-                                  disable_notification=True)
-
-    except MessageToDeleteNotFound:
-        True  # Do nothing. If the button was pressed many times, message removing will throw an exception
+    url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, (await tbot.get_file(file_reuse_id)).file_path)
+    r = requests.get(url)
+    with BytesIO(r.content) as f:
+        f.name = 'image.jpg'
+        await message.edit_media(InputMediaPhoto(f),
+                                 reply_markup=get_as_file_reply_markup(image_from_library_id, can_remove, image_exists))
 
     await tbot.answer_callback_query(call.id)
 
