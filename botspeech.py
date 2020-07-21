@@ -9,7 +9,6 @@ START_MESSAGE_TEXT = 'Hello!\n\n— <b>Send</b> me any text to set the heading;'
                      ' the background.' \
                      '\n\n<i>Tip #2</i>:\nYou can send a \'.\' symbol to set an empty heading.' \
                      '\n\n<i>Tip #3</i>:\nUse usual line breaks to divide the lines of the heading.'
-WAIT_FOR_AN_IMAGE_MESSAGE_TEXT = "One moment... ⏳"
 SUCCESSFULLY_REMOVED_ANSWER = '✅ Successfully removed from saved backgrounds'
 ALREADY_REMOVED_ANSWER = 'ℹ️ Seems like it is already removed'
 DO_YOU_WANT_TO_DELETE_IMAGE = 'Do you want to remove this photo from saved backgrounds?'

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import re
 
 import bcrypt
@@ -22,6 +23,8 @@ dp = Dispatcher(tbot)
 
 # DB.
 bot_data = BotData()
+
+DUMMY_PHOTO_ID = ''
 
 
 async def log(message):
@@ -112,17 +115,14 @@ async def build_and_send_image(message):
                                                                                                    size=(1920, 1080),
                                                                                                    color=(41, 54, 72))
 
-    wait_for_an_image_message = await tbot.send_message(chat_id, WAIT_FOR_AN_IMAGE_MESSAGE_TEXT,
-                                                        reply_markup=types.ReplyKeyboardRemove(),
-                                                        disable_notification=True)
+    result_photo_message = await tbot.send_photo(chat_id, DUMMY_PHOTO_ID, reply_markup=get_go_to_library_reply_markup())
+
     await tbot.delete_message(chat_id, message.message_id)
     built_image = generate_image(heading, background_image, blackout, blur)
     can_remove = can_remove_this_image(chat_id, file_id)
     image_exists = bot_data.image_exists(file_id)
-    await tbot.send_photo(chat_id, image_to_file(built_image, SENT_IMAGE_FILE_NAME),
-                          reply_markup=get_as_file_reply_markup(file_id, can_remove, image_exists),
-                          disable_notification=True)
-    await tbot.delete_message(chat_id, wait_for_an_image_message.message_id)
+    await result_photo_message.edit_media(InputMediaPhoto(image_to_file(built_image, SENT_IMAGE_FILE_NAME)),
+                                          reply_markup=get_as_file_reply_markup(file_id, can_remove, image_exists))
 
     await log_photo(chat_id, built_image, message.date.timestamp())
 
@@ -507,5 +507,16 @@ async def remove_this_message(call):
     await tbot.answer_callback_query(call.id)
 
 
+async def preparations():
+    global DUMMY_PHOTO_ID
+
+    dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0.3, 0)
+    dummy_photo_message = await tbot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
+                                                disable_notification=True)
+    dummy_photo_tginfo = dummy_photo_message.photo[-1]
+    DUMMY_PHOTO_ID = dummy_photo_tginfo.file_id
+
+
 if __name__ == '__main__':
+    asyncio.get_event_loop().run_until_complete(preparations())
     executor.start_polling(dp, skip_updates=False)
