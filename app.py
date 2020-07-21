@@ -512,6 +512,8 @@ async def preparations():
 
     dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0.3, 0)
     dummy_photo_message = await tbot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
+                                                caption='<pre>(dummy background cache)</pre>',
+                                                parse_mode='html',
                                                 disable_notification=True)
     dummy_photo_tginfo = dummy_photo_message.photo[-1]
     DUMMY_PHOTO_ID = dummy_photo_tginfo.file_id
