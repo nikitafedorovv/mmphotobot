@@ -21,7 +21,7 @@ def generate_image(heading, image, blackout, blur):
 
     image = image.resize((new_width, new_height), Image.ANTIALIAS).crop((0, 0, 1920, 1080))
 
-    image = image.filter(ImageFilter.GaussianBlur(blur))
+    image = image.filter(ImageFilter.GaussianBlur(blur - 1))
 
     blackout = int(255 * blackout)
     grey_img = Image.new(mode='RGBA', size=(1920, 1080), color='black')
