@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import asyncio
 import re
 
 import bcrypt
@@ -492,25 +491,27 @@ async def remove_this_message(call):
     await tbot.answer_callback_query(call.id)
 
 
-async def set_commands():
+async def set_commands(bot: Bot):
     commands = [types.BotCommand(command="/help", description="Get some help")]
-    await tbot.set_my_commands(commands)
+    await bot.set_my_commands(commands)
 
 
-async def preparations():
-    await set_commands()
-
+async def send_dummy_pic(bot: Bot):
     global DUMMY_PHOTO_ID
 
     dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0, 1)
-    dummy_photo_message = await tbot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
-                                                caption='<pre>BOT IS UP</pre>',
-                                                parse_mode='html',
-                                                disable_notification=True)
+    dummy_photo_message = await bot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
+                                               caption='<pre>BOT IS UP</pre>',
+                                               parse_mode='html',
+                                               disable_notification=True)
     dummy_photo_tginfo = dummy_photo_message.photo[-1]
     DUMMY_PHOTO_ID = dummy_photo_tginfo.file_id
 
 
+async def startup(dispatcher: Dispatcher):
+    await set_commands(dispatcher.bot)
+    await send_dummy_pic(dispatcher.bot)
+
+
 if __name__ == '__main__':
-    asyncio.get_event_loop().run_until_complete(preparations())
-    executor.start_polling(dp, skip_updates=False)
+    executor.start_polling(dp, on_startup=startup, skip_updates=False)
