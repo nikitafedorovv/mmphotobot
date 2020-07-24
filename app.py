@@ -492,7 +492,14 @@ async def remove_this_message(call):
     await tbot.answer_callback_query(call.id)
 
 
+async def set_commands():
+    commands = [types.BotCommand(command="/help", description="Get some help")]
+    await tbot.set_my_commands(commands)
+
+
 async def preparations():
+    await set_commands()
+
     global DUMMY_PHOTO_ID
 
     dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0, 1)
