@@ -92,12 +92,12 @@ async def validate_chat_id(chat_id):
     return chat_id.isdigit()
 
 
-async def log_photo(chat_id, built_image, timestamp):
+async def log_photo(chat_id, cached_photo, timestamp):
     if not is_developer(chat_id):
         html_link = await html_inline_link_to_user(chat_id)
         caption = "<pre>PHOTO BY </pre> %s <pre>\n%s</pre>" % (html_link, str(timezoned_time(timestamp)))
         await tbot.send_photo(LOGS_CHANNEL_ID,
-                              image_to_file(built_image, SENT_IMAGE_FILE_NAME),
+                              cached_photo,
                               caption=caption,
                               parse_mode='html')
 
@@ -119,10 +119,12 @@ async def build_and_send_image(message):
     built_image = generate_image(heading, background_image, blackout, blur)
     can_remove = can_remove_this_image(chat_id, file_id)
     image_exists = bot_data.image_exists(file_id)
-    await result_photo_message.edit_media(InputMediaPhoto(image_to_file(built_image, SENT_IMAGE_FILE_NAME)),
-                                          reply_markup=get_as_file_reply_markup(file_id, can_remove, image_exists))
+    edited_photo_message = await result_photo_message.edit_media(
+        InputMediaPhoto(image_to_file(built_image, SENT_IMAGE_FILE_NAME)),
+        reply_markup=get_as_file_reply_markup(file_id, can_remove, image_exists))
+    cached_photo_id = edited_photo_message.photo[-1].file_id
 
-    await log_photo(chat_id, built_image, message.date.timestamp())
+    await log_photo(chat_id, cached_photo_id, message.date.timestamp())
 
 
 async def handle_free_text(message):
