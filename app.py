@@ -31,7 +31,7 @@ async def log(message):
 
 
 async def handle_exception(exception):
-    await log("<pre>%s</pre>\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
+    await log("<pre>[PHOTOBOT] %s</pre>\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
 
 
 def is_developer(user_id):
@@ -95,7 +95,7 @@ async def validate_chat_id(chat_id):
 async def log_photo(chat_id, cached_photo, timestamp):
     if not is_developer(chat_id):
         html_link = await html_inline_link_to_user(chat_id)
-        caption = "<pre>PHOTO BY </pre> %s <pre>\n%s</pre>" % (html_link, str(timezoned_time(timestamp)))
+        caption = "<pre>[PHOTOBOT] PHOTO BY </pre> %s <pre>\n%s</pre>" % (html_link, str(timezoned_time(timestamp)))
         await tbot.send_photo(LOGS_CHANNEL_ID,
                               cached_photo,
                               caption=caption,
@@ -503,7 +503,7 @@ async def send_dummy_pic(bot: Bot):
 
     dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0, 1)
     dummy_photo_message = await bot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
-                                               caption='<pre>BOT IS UP</pre>',
+                                               caption='<pre>[PHOTOBOT] BOT IS UP</pre>',
                                                parse_mode='html',
                                                disable_notification=True)
     dummy_photo_tginfo = dummy_photo_message.photo[-1]
