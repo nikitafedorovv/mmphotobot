@@ -156,7 +156,7 @@ async def handle_start(message):
 async def handle_help(message):
     chat_id = message.chat.id
 
-    await log('%s <pre>ASKED FOR HELP</pre>' % await html_inline_link_to_user(message.chat.id))
+    await log('<pre>[PHOTOBOT] </pre>%s <pre>ASKED FOR HELP</pre>' % await html_inline_link_to_user(message.chat.id))
 
     bot_data.set_state(chat_id, ChatState.FREE)
     await tbot.send_message(chat_id, START_MESSAGE_TEXT, reply_markup=get_go_to_library_reply_markup(),
