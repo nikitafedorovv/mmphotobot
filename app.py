@@ -14,7 +14,7 @@ from botdata import BotData
 from botspeech import *
 from botutil import *
 from chat_states import ChatState
-from mm_image_generator import generate_image
+from image_generator.mode_2018.image_generator import generate_image
 from ui_elements import *
 
 tbot = Bot(token=API_TOKEN)
@@ -494,14 +494,17 @@ async def remove_this_message(call):
 
 
 async def set_commands(bot: Bot):
-    commands = [types.BotCommand(command="/help", description="Get some help")]
+    commands = [types.BotCommand(command="/help", description="Get some help"),
+                types.BotCommand(command="/mode_2021", description="Go modern 😎"),
+                types.BotCommand(command="/mode_2018", description="Go classic 🎹"),
+                types.BotCommand(command="/mode_2017", description="Go ancient 📜")]
     await bot.set_my_commands(commands)
 
 
 async def send_dummy_pic(bot: Bot):
     global DUMMY_PHOTO_ID
 
-    dummy_image = generate_image('', Image.open('images/dummy-background.png').convert('L'), 0, 1)
+    dummy_image = generate_image('', Image.open('image_generator/dummy-background.png').convert('L'), 0, 1)
     dummy_photo_message = await bot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
                                                caption='<pre>[PHOTOBOT] BOT IS UP</pre>',
                                                parse_mode='html',
