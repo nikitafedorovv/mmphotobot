@@ -9,8 +9,8 @@ FONT_PATH = CURRENT_DIRECTORY + '/Gilroy-SemiBold.ttf'
 
 
 def generate_image(title="Default title", image_type="main", mmnews=False):
-    image = Image.open("%s.png" % image_type)
-    bottom_image_path = CURRENT_DIRECTORY + '/'
+    image = Image.open("%s/sources/%s.png" % (CURRENT_DIRECTORY, image_type)).convert("RGB")
+    bottom_image_path = CURRENT_DIRECTORY + '/sources/'
     if mmnews:
         bottom_image_path += "mmnews"
     else:

@@ -5,13 +5,13 @@ import os
 from PIL import Image, ImageFont, ImageDraw, ImageFilter
 
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
-MM_LOGO_FILE_PATH = CURRENT_DIRECTORY + '/mm-white-logo.png'
-MAIN_FONT_FILE_PATH = CURRENT_DIRECTORY + '/OpenSans-Regular.ttf'
+MM_LOGO_FILE_PATH = CURRENT_DIRECTORY + '/sources/mm-white-logo.png'
+MAIN_FONT_FILE_PATH = CURRENT_DIRECTORY + '/sources/OpenSans-Regular.ttf'
 DARKENING_LAYER_COLOR = '#1a2535'
 
 
 # Originally by https://github.com/kuparez at https://github.com/kuparez/studsovet_scripts
-def gen_image(heading, subheading, image, blackout, blur):
+def generate_image(heading, subheading, image, blackout, blur):
     width, height = image.size
     if width * 1.0 / height > 1920.0 / 1080:
         new_height = 1080

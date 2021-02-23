@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 from datetime import datetime
 from io import BytesIO
 
@@ -21,6 +22,14 @@ def clear_text(text):
         text = ''
 
     return text
+
+
+def validate_blackout(blackout):
+    return re.match("^[-+]?[0-9]*\.?[0-9]+$", blackout) is not None and 0 <= float(blackout) < 1
+
+
+def validate_blur(blur):
+    return blur.isdigit() and int(blur) > 1
 
 
 def safe_cast(val, to_type, default=None):

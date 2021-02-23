@@ -2,6 +2,7 @@
 import pymongo
 
 from botconfig import *
+from chat_modes import ChatMode
 from chat_states import ChatState
 
 
@@ -13,7 +14,9 @@ def get_new_chat(new_chat_id):
         'blur': DEFAULT_BLUR,
         'cached_message': None,
         'state': str(ChatState.FREE),
-        'image': None
+        'image': None,
+        'mode': DEFAULT_CHAT_MODE.value,
+        'pic_color_2021': DEFAULT_PIC_COLOR_2021.value
     }
 
 
@@ -103,7 +106,6 @@ class BotData:
         chat = self.__get_chat_data(chat_id)
         chat['heading'] = value
         self.__mongodb["chats"].save(chat)
-
         pass
 
     def set_blackout(self, chat_id, value):
@@ -126,6 +128,7 @@ class BotData:
 
     def set_state(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
+        # TODO: fix
         chat['state'] = str(value)
         self.__mongodb["chats"].save(chat)
         pass
@@ -133,6 +136,18 @@ class BotData:
     def set_image(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
         chat['image'] = value
+        self.__mongodb["chats"].save(chat)
+        pass
+
+    def set_mode(self, chat_id, value: ChatMode):
+        chat = self.__get_chat_data(chat_id)
+        chat['mode'] = value.value
+        self.__mongodb["chats"].save(chat)
+        pass
+
+    def set_pic_color_2021(self, chat_id, value: PicColor2021):
+        chat = self.__get_chat_data(chat_id)
+        chat['pic_color_2021'] = value.value
         self.__mongodb["chats"].save(chat)
         pass
 
@@ -161,11 +176,24 @@ class BotData:
 
     def get_state(self, chat_id):
         state_str = self.__get_chat_data(chat_id)['state']
+        # TODO: fix
         state_name = state_str[10:]
         return ChatState(state_name)
 
     def get_image(self, chat_id):
         return self.__get_chat_data(chat_id)['image']
+
+    def get_mode(self, chat_id):
+        chat_data = self.__get_chat_data(chat_id)
+        chat_data.setdefault('mode', DEFAULT_CHAT_MODE.value)
+        mode_str = chat_data['mode']
+        return ChatMode(mode_str)
+
+    def get_pic_color_2021(self, chat_id):
+        chat_data = self.__get_chat_data(chat_id)
+        chat_data.setdefault('pic_color_2021', DEFAULT_PIC_COLOR_2021.value)
+        pic_color_str = chat_data['pic_color_2021']
+        return PicColor2021(pic_color_str)
 
     def heading_set(self, chat_id):
         chat_data = self.__get_chat_data(chat_id)

@@ -2,6 +2,9 @@
 
 import os
 
+from chat_modes import ChatMode
+from modes.mode_2021.pic_colors import PicColor2021
+
 PROJECT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 API_TOKEN = os.environ.get('PHOTOBOT_TOKEN')
@@ -21,6 +24,9 @@ WEBHOOK_URL_PATH = "/tgmmphotobot/"
 MONGO_URL = os.environ.get('MONGO_URL')
 
 PROXY = os.environ.get('PROXY')
+
+DEFAULT_CHAT_MODE = ChatMode.MODE2021
+DEFAULT_PIC_COLOR_2021 = PicColor2021.MAIN
 
 # Quick'n'dirty SSL certificate generation:
 #

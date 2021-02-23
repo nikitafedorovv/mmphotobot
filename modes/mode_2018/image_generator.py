@@ -5,7 +5,7 @@ import os
 from PIL import Image, ImageFont, ImageDraw, ImageFilter
 
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
-MAIN_FONT_FILE_PATH = CURRENT_DIRECTORY + '/helios_cond_bold_cyr.otf'
+MAIN_FONT_FILE_PATH = CURRENT_DIRECTORY + '/sources/helios_cond_bold_cyr.otf'
 
 
 def generate_image(heading, image, blackout, blur):
@@ -35,7 +35,7 @@ def generate_image(heading, image, blackout, blur):
 
     draw.line((0, 980) + (1920, 980), fill='white', width=200)
 
-    bottom_image_dir = CURRENT_DIRECTORY + '/bottom.png'
+    bottom_image_dir = CURRENT_DIRECTORY + '/sources/bottom.png'
     bottom_image = Image.open(bottom_image_dir)
 
     image.paste(bottom_image, (0, 0), bottom_image)
