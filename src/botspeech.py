@@ -7,7 +7,8 @@ START_MESSAGE_TEXT = 'Hello!\n\n— <b>Send</b> me any text to set the heading;'
                      '\n\n\n<i>Tip</i>:\nYou can send me your own image from your device to use it as' \
                      ' the background.' \
                      '\n\n<i>Tip #2</i>:\nYou can send a \'.\' symbol to set an empty heading.' \
-                     '\n\n<i>Tip #3</i>:\nUse usual line breaks to divide the lines of the heading.'
+                     '\n\n<i>Tip #3</i>:\nUse usual line breaks to divide the lines of the heading.' \
+                     '\n\n<i>Tip #4</i>:\nTo change modes use commands (start with / symbol).'
 SUCCESSFULLY_REMOVED_ANSWER = '✅ Successfully removed from saved backgrounds'
 ALREADY_REMOVED_ANSWER = 'ℹ️ Seems like it is already removed'
 DO_YOU_WANT_TO_DELETE_IMAGE = 'Do you want to remove this photo from saved backgrounds?'

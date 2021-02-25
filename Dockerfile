@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.7-slim-buster
+FROM python:3.9-slim-buster
 
 # Set the working directory to /app
 WORKDIR /app
@@ -22,5 +22,5 @@ EXPOSE 80
 # Define environment variable
 #ENV ENV_NAME env_value
 
-# Run bot.py when the container launches
-CMD ["python", "app.py"]
+# Run app.py when the container launches
+CMD ["python", "src/app.py"]

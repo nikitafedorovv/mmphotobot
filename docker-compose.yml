@@ -19,7 +19,7 @@ services:
 
   mmphotobot:
     container_name: "mmphotobot_bot_container"
-    #    image: "incarcerous8/mmphotobot:prod"  # For prod environment
+    #    image: "nox01/mmphotobot:prod"  # For prod environment
     build: . # For non-prod environment
     #        volumes:
     #          - .:/var/www:rw

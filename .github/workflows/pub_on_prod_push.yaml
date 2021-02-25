@@ -1,0 +1,37 @@
+name: Publish on Docker Hub  # and deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  run_tests:
+    runs-on: [ ubuntu-latest ]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.9'
+          architecture: 'x64'
+      - name: Install requirements
+        run: pip install --trusted-host pypi.python.org -r requirements.txt
+      - name: Run tests
+        run: coverage run src/tests.py
+      - name: Tests report
+        run: coverage report
+
+  build_and_pub:
+    needs: [ run_tests ]
+    runs-on: [ ubuntu-latest ]
+    env:
+      LOGIN: ${{ secrets.DOCKER_ID }}
+      NAME: ${{ secrets.DOCKER_REPOSITORY }}
+    steps:
+      - name: Login to docker.io
+        run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_ID }} --password-stdin
+      - uses: actions/checkout@master
+      - name: Build image
+        run: docker build -t $LOGIN/$NAME:prod -f Dockerfile .
+      - name: Push image to docker.io
+        run: docker push $LOGIN/$NAME:prod

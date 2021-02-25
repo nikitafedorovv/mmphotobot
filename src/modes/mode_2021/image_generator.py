@@ -5,7 +5,7 @@ import os
 from PIL import Image, ImageFont, ImageDraw
 
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
-FONT_PATH = CURRENT_DIRECTORY + '/Gilroy-SemiBold.ttf'
+FONT_PATH = CURRENT_DIRECTORY + '/sources/Gilroy-SemiBold.ttf'
 
 
 def generate_image(title="Default title", image_type="main", mmnews=False):

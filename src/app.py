@@ -33,7 +33,7 @@ async def set_commands(bot: Bot):
 
 
 async def send_dummy_pic(bot: Bot):
-    dummy_image = Image.open('modes/mode_2021/sources/no_background.png').convert('RGB')
+    dummy_image = Image.open('src/modes/mode_2021/sources/no_background.png').convert('RGB')
     dummy_photo_message = await bot.send_photo(LOGS_CHANNEL_ID, image_to_file(dummy_image, SENT_IMAGE_FILE_NAME),
                                                caption='<pre>[PHOTOBOT] BOT IS UP</pre>',
                                                parse_mode='html',

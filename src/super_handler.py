@@ -399,7 +399,7 @@ class Handler:
                                     reply_markup=self.get_delete_button_reply_markup(), disable_notification=True)
         await self.bot.send_message(chat_id, message_text, parse_mode="markdown",
                                     reply_markup=self.get_delete_button_reply_markup(),
-                                    disable_notification=True)
+                                    disable_notification=True, disable_web_page_preview=True)
         await self.bot.send_message(chat_id, "<pre>ENTER CURRENT DAY OF MONTH TO CONFIRM</pre>", parse_mode='html',
                                     reply_markup=self.get_delete_button_reply_markup(), disable_notification=True)
         self.bot_data.set_state(chat_id, ChatState.CONFIRMING_NEWSLETTER)
