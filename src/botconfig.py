@@ -33,7 +33,7 @@ DEFAULT_PIC_COLOR_2021 = PicColor2021.MAIN
 # openssl req -newkey rsa:2048 -sha256 -nodes -keyout private.key -x509 -days 365
 # -out public.pem -subj "/C=IT/ST=state/L=location/O=description/CN=<<WEBHOOK_HOST>>"
 
-SENT_IMAGE_FILE_NAME = 'image.jpg'
+SENT_IMAGE_FILE_NAME = 'image.png'
 
 DEFAULT_HEADING = 'Specify the heading,\nplease'
 DEFAULT_BLACKOUT = 0.50

@@ -16,7 +16,8 @@ def get_new_chat(new_chat_id):
         'state': str(ChatState.FREE),
         'image': None,
         'mode': DEFAULT_CHAT_MODE.value,
-        'pic_color_2021': DEFAULT_PIC_COLOR_2021.value
+        'pic_color_2021': DEFAULT_PIC_COLOR_2021.value,
+        'last_sent_photo_message_id': None
     }
 
 
@@ -151,6 +152,12 @@ class BotData:
         self.__mongodb["chats"].save(chat)
         pass
 
+    def set_last_sent_photo_message_id(self, chat_id, value):
+        chat = self.__get_chat_data(chat_id)
+        chat['last_sent_photo_message_id'] = value
+        self.__mongodb["chats"].save(chat)
+        pass
+
     def remember_reuse_id(self, file_id, file_reuse_id):
         file_reuse_coll = self.__mongodb["file-reuse-info"]
         file_reuse_info = file_reuse_coll.find_one({"file_id": str(file_id)})
@@ -194,6 +201,11 @@ class BotData:
         chat_data.setdefault('pic_color_2021', DEFAULT_PIC_COLOR_2021.value)
         pic_color_str = chat_data['pic_color_2021']
         return PicColor2021(pic_color_str)
+
+    def get_last_sent_photo_message_id(self, chat_id):
+        chat_data = self.__get_chat_data(chat_id)
+        chat_data.setdefault('last_sent_photo_message_id', None)
+        return chat_data['last_sent_photo_message_id']
 
     def heading_set(self, chat_id):
         chat_data = self.__get_chat_data(chat_id)

@@ -38,7 +38,7 @@ class Handler2018(Handler):
             self.bot_data.set_heading(chat_id, clear_text(message.text))
             await self.build_and_send_image(message)
 
-    async def build_image(self, chat_id):
+    async def build_image(self, chat_id, mmnews_enabled):
         heading = self.bot_data.get_heading(chat_id)
         blackout = self.bot_data.get_blackout(chat_id)
         blur = self.bot_data.get_blur(chat_id)

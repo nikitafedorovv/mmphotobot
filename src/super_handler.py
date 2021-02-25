@@ -33,7 +33,7 @@ class Handler:
         pass
 
     @abstractmethod
-    async def build_image(self, message):
+    async def build_image(self, chat_id, mmnews_enabled):
         pass
 
     @abstractmethod
@@ -55,18 +55,24 @@ class Handler:
 
     async def build_and_send_image(self, message):
         await self.bot.delete_message(message.chat.id, message.message_id)
-        await self.send_image(await self.build_image(message.chat.id), message)
+        await self.send_image(await self.build_image(message.chat.id, False), message)
 
     async def send_image(self, image, message):
         chat_id = message.chat.id
+
+        last_sent_photo_message_id = self.bot_data.get_last_sent_photo_message_id(chat_id)
+        if last_sent_photo_message_id is not None:
+            await self.bot.edit_message_reply_markup(chat_id, last_sent_photo_message_id, reply_markup=None)
+
         file_id = self.bot_data.get_image(chat_id)
         can_remove = self.can_remove_this_image(chat_id, file_id)
         image_exists = self.bot_data.image_exists(file_id)
         photo_message = await self.bot.send_photo(chat_id, image_to_file(image, SENT_IMAGE_FILE_NAME),
                                                   reply_markup=self.get_as_file_reply_markup(file_id, can_remove,
                                                                                              image_exists))
-        cached_photo_id = photo_message.photo[-1].file_id
+        self.bot_data.set_last_sent_photo_message_id(chat_id, photo_message.message_id)
 
+        cached_photo_id = photo_message.photo[-1].file_id
         await self.log_photo(chat_id, cached_photo_id, message.date.timestamp())
 
     async def handle_text(self, message: types.Message):
@@ -158,21 +164,26 @@ class Handler:
                     return [keyboard.index(line), line.index(button)]
         return None
 
+    def is_mmnews_enabled(self, message: types.Message):
+        keyboard = message.reply_markup.inline_keyboard
+        for line in keyboard:
+            for button in line:
+                if button.callback_data == MMNEWS_CALLBACK_DATA + MMNEWS_TURN_ON:
+                    return False
+        return True
+
     async def get_as_file_callback(self, call):
         message: types.Message
         message = call.message
-        file_reuse_id = message.photo[-1].file_id
 
         reply_markup = message.reply_markup
         position = self.get_button_position_by_callback_data(message, GET_AS_FILE_CALLBACK_DATA)
         reply_markup.inline_keyboard[position[0]][position[1]] = self.get_as_photo_button()
 
-        url = 'https://api.telegram.org/file/bot%s/%s' % (API_TOKEN, (await self.bot.get_file(file_reuse_id)).file_path)
-        r = requests.get(url)
-        with BytesIO(r.content) as f:
-            f.name = 'image.jpg'
-            await message.edit_media(types.input_media.InputMediaDocument(f),
-                                     reply_markup=reply_markup)
+        image = await self.build_image(message.chat.id, mmnews_enabled=self.is_mmnews_enabled(message))
+
+        await message.edit_media(types.input_media.InputMediaDocument(image_to_file(image, SENT_IMAGE_FILE_NAME)),
+                                 reply_markup=reply_markup)
 
         await self.bot.answer_callback_query(call.id)
 

@@ -38,7 +38,7 @@ class Handler2017(Handler):
             self.bot_data.set_heading(chat_id, clear_text(message.text))
             await self.build_and_send_image(message)
 
-    async def build_image(self, chat_id):
+    async def build_image(self, chat_id, mmnews_enabled):
         heading_split = self.bot_data.get_heading(chat_id).split("\n")
         title = heading_split[0]
 

@@ -12,7 +12,7 @@ from botconfig import TIMEZONE
 def image_to_file(image, name):
     bio = BytesIO()
     bio.name = name
-    image.save(bio, 'JPEG')
+    image.save(bio, 'PNG')
     bio.seek(0)
     return bio
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from aiogram import Bot
-from aiogram.types import Message, InputMediaPhoto, InputMediaDocument, InlineKeyboardMarkup, InlineKeyboardButton, \
+from aiogram.types import InputMediaPhoto, InputMediaDocument, InlineKeyboardMarkup, InlineKeyboardButton, \
     CallbackQuery
 from aiogram.utils.exceptions import MessageNotModified
 
@@ -71,20 +71,12 @@ class Handler2021(Handler):
 
         return generate_image(heading, pic_color_2021.value, mmnews_enabled)
 
-    def __is_mmnews_enabled(self, message: Message):
-        keyboard = message.reply_markup.inline_keyboard
-        for line in keyboard:
-            for button in line:
-                if button.callback_data == MMNEWS_CALLBACK_DATA + MMNEWS_TURN_ON:
-                    return False
-        return True
-
     async def change_pic_color_2021(self, call: CallbackQuery):
         chat_id = call.message.chat.id
         pic_color = PicColor2021(call.data[len(CHANGE_PIC_COLOR_2021_CALLBACK_DATA):])
         self.bot_data.set_pic_color_2021(chat_id, pic_color)
 
-        new_image = await self.build_image(chat_id, self.__is_mmnews_enabled(call.message))
+        new_image = await self.build_image(chat_id, self.is_mmnews_enabled(call.message))
 
         try:
             if len(call.message.photo) != 0:
@@ -115,6 +107,7 @@ class Handler2021(Handler):
             await call.message.edit_media(InputMediaDocument(image_to_file(image, SENT_IMAGE_FILE_NAME)),
                                           reply_markup=self.get_as_photo_reply_markup(file_id, can_remove,
                                                                                       image_exists, mmnews_enabled))
+        await self.bot.answer_callback_query(call.id)
 
     def __get_color_buttons(self):
         return [
