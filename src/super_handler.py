@@ -14,7 +14,7 @@ from bot_elements_config import *
 from botconfig import *
 from botdata import BotData
 from botspeech import *
-from botutil import timezoned_time, current_time, image_to_file
+from botutil import current_time, image_to_file
 from chat_states import ChatState
 
 
@@ -71,9 +71,6 @@ class Handler:
                                                   reply_markup=self.get_as_file_reply_markup(file_id, can_remove,
                                                                                              image_exists))
         self.bot_data.set_last_sent_photo_message_id(chat_id, photo_message.message_id)
-
-        cached_photo_id = photo_message.photo[-1].file_id
-        await self.log_photo(chat_id, cached_photo_id, message.date.timestamp())
 
     async def handle_text(self, message: types.Message):
         state = self.bot_data.get_state(message.chat.id)
@@ -220,15 +217,6 @@ class Handler:
 
     async def log(self, message):
         return await self.bot.send_message(LOGS_CHANNEL_ID, message, parse_mode='html')
-
-    async def log_photo(self, chat_id, cached_photo, timestamp):
-        if not self.is_developer(chat_id):
-            html_link = await self.html_inline_link_to_user(chat_id)
-            caption = "<pre>[PHOTOBOT] PHOTO BY </pre> %s <pre>\n%s</pre>" % (html_link, str(timezoned_time(timestamp)))
-            await self.bot.send_photo(LOGS_CHANNEL_ID,
-                                      cached_photo,
-                                      caption=caption,
-                                      parse_mode='html')
 
     async def handle_exception(self, exception):
         await self.log("<pre>[PHOTOBOT] %s</pre>\n\n%s" % (EXCEPTION_MESSAGE_TEXT, str(exception)))
