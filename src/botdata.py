@@ -41,7 +41,7 @@ class BotData:
         image_info = gallery_coll.find_one({"image_id": str(image_id)})
 
         if image_info is None:
-            gallery_coll.save(get_new_image_info(str(image_id), str(owner_id)))
+            gallery_coll.insert_one(get_new_image_info(str(image_id), str(owner_id)))
             image_info = gallery_coll.find_one({"image_id": str(image_id)})
 
         return image_info
@@ -49,7 +49,7 @@ class BotData:
     def increment_rating(self, image_id, user_id):
         image_info = self.__get_image_info_or_create(image_id, user_id)
         image_info['rating'] += 1
-        self.__mongodb["gallery"].save(image_info)
+        self.__mongodb["gallery"].replace_one({"image_id": image_info["image_id"]}, image_info)
 
     def get_images_sorted_by_rating(self):
         return self.__mongodb["gallery"].find({}).sort([("rating", -1)])
@@ -88,7 +88,7 @@ class BotData:
         newsletter_coll.delete_many({})
 
         for message in last_newsletter_messages:
-            newsletter_coll.save(message)
+            newsletter_coll.insert_one(message)
 
     def get_last_newsletter_messages(self):
         return self.__mongodb["newsletter"].find({})
@@ -98,7 +98,7 @@ class BotData:
         chat = chats_coll.find_one({"chat_id": str(chat_id)})
 
         if chat is None:
-            chats_coll.save(get_new_chat(str(chat_id)))
+            chats_coll.insert_one(get_new_chat(str(chat_id)))
             chat = chats_coll.find_one({"chat_id": str(chat_id)})
 
         return chat
@@ -106,63 +106,63 @@ class BotData:
     def set_heading(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
         chat['heading'] = value
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def set_blackout(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
         chat['blackout'] = value
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def set_blur(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
         chat['blur'] = value
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def set_cached_message(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
         chat['cached_message'] = value
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def set_state(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
         # TODO: fix
         chat['state'] = str(value)
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def set_image(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
         chat['image'] = value
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def set_mode(self, chat_id, value: ChatMode):
         chat = self.__get_chat_data(chat_id)
         chat['mode'] = value.value
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def set_pic_color_2021(self, chat_id, value: PicColor2021):
         chat = self.__get_chat_data(chat_id)
         chat['pic_color_2021'] = value.value
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def set_last_sent_photo_message_id(self, chat_id, value):
         chat = self.__get_chat_data(chat_id)
         chat['last_sent_photo_message_id'] = value
-        self.__mongodb["chats"].save(chat)
+        self.__mongodb["chats"].replace_one({"chat_id": chat["chat_id"]}, chat)
         pass
 
     def remember_reuse_id(self, file_id, file_reuse_id):
         file_reuse_coll = self.__mongodb["file-reuse-info"]
         file_reuse_info = file_reuse_coll.find_one({"file_id": str(file_id)})
         if file_reuse_info is None:
-            file_reuse_coll.save({'file_id': file_id, 'file_reuse_id': file_reuse_id})
+            file_reuse_coll.insert_one({'file_id': file_id, 'file_reuse_id': file_reuse_id})
 
     def get_reuse_id(self, file_id):
         file_reuse_coll = self.__mongodb["file-reuse-info"]
