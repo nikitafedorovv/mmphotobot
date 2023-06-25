@@ -8,7 +8,8 @@ import requests
 from PIL import Image
 from aiogram import Bot
 from aiogram import types
-from aiogram.utils.exceptions import TelegramAPIError, AIOGramWarning, RetryAfter, MessageToDeleteNotFound
+from aiogram.utils.exceptions import TelegramAPIError, AIOGramWarning, RetryAfter, MessageToDeleteNotFound, \
+    MessageNotModified
 
 from bot_elements_config import *
 from botconfig import *
@@ -62,7 +63,10 @@ class Handler:
 
         last_sent_photo_message_id = self.bot_data.get_last_sent_photo_message_id(chat_id)
         if last_sent_photo_message_id is not None:
-            await self.bot.edit_message_reply_markup(chat_id, last_sent_photo_message_id, reply_markup=None)
+            try:
+                await self.bot.edit_message_reply_markup(chat_id, last_sent_photo_message_id, reply_markup=None)
+            except MessageNotModified:
+                pass
 
         file_id = self.bot_data.get_image(chat_id)
         can_remove = self.can_remove_this_image(chat_id, file_id)
