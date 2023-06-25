@@ -1,9 +1,9 @@
-enum34>=1.1
-Pillow>=7.1
+enum34==1.1.10
+Pillow>=9.5.0
 pytz
-requests>=2.23
-pymongo
-aiogram
-aiohttp[speedups]
-bcrypt==3.1.7
-coverage==5.4
+requests==2.31.0
+pymongo==4.4.0
+aiogram==2.25.1
+aiohttp[speedups]==3.8.4
+bcrypt==4.0.1
+coverage==7.2.7
